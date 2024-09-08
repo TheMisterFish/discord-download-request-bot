@@ -9,6 +9,8 @@ from core.utils import farm_autocomplete
 from core.database import get_entry
 from core.farmdata import farmdata
 
+from core.logger import command_logger
+
 class Commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -18,6 +20,7 @@ class Commands(commands.Cog):
 
     @commands.slash_command(name="download", description="Search for a farm by name or ID")
     @is_not_ignored()
+    @command_logger
     async def download(
         self,
         ctx,

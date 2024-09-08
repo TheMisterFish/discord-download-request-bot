@@ -8,6 +8,8 @@ from core.guards import is_admin, is_not_ignored
 from core.config import load_config, save_config
 from core.utils import scan_channel
 
+from core.logger import command_logger
+
 class AdminCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -15,6 +17,7 @@ class AdminCommands(commands.Cog):
     @commands.slash_command(name="ignore", description="Ignore, unignore, or list ignored users")
     @is_admin()
     @is_not_ignored()
+    @command_logger
     async def ignore(
         self, 
         ctx, 
@@ -67,6 +70,7 @@ class AdminCommands(commands.Cog):
     @commands.slash_command(name="linkchannel", description="Manage link channels")
     @is_admin()
     @is_not_ignored()
+    @command_logger
     async def linkchannel(
         self, 
         ctx, 

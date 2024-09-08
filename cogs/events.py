@@ -7,19 +7,21 @@ from core.config import load_config
 from core.utils import process_message, scan_channel
 from core.guards import UserIgnoredError
 
+from core.logger import logger
+
 class Events(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'Logged in as {self.bot.user.name}')
+        logger.info(f'Logged in as {self.bot.user.name}')
         config = load_config()
         for channel_name in config['link_channels']:
             channel = discord.utils.get(self.bot.get_all_channels(), name=channel_name)
             if channel:
                 await scan_channel(None, channel)
-        print('Initialization complete')
+        logger.info('Initialization complete')
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -31,6 +33,7 @@ class Events(commands.Cog):
             return
 
         if message.channel.name in config['link_channels']:
+            logger.info(f"Processing message in channel: {message.channel.name}")
             await process_message(message)
 
     @commands.Cog.listener()
@@ -45,7 +48,7 @@ class Events(commands.Cog):
             await ctx.respond(f"An error occurred", ephemeral=True)
         
         # Optionally, you can log the error for debugging
-        print(f"Error in command {ctx.command}: {str(error)}")
+        logger.error(f"Error in command {ctx.command}: {str(error)}")
 
 def setup(bot):
     bot.add_cog(Events(bot))
