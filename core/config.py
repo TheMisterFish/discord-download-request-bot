@@ -2,11 +2,11 @@ import json
 import os
 
 DATA_DIR = 'data'
+
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
 CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
-DATABASE_FILE = os.path.join(DATA_DIR, 'database.csv')
 
 def load_config():
     if not os.path.exists(CONFIG_FILE):

@@ -1,5 +1,4 @@
 import discord
-from discord.ext import commands
 from dotenv import load_dotenv
 import os
 
@@ -16,9 +15,11 @@ intents.presences = True
 bot = discord.Bot(intents=intents)
 
 # Load cogs
-bot.load_extension('cogs.commands')
-bot.load_extension('cogs.adminCommands')
 bot.load_extension('cogs.events')
+bot.load_extension('cogs.downloadCommand')
+bot.load_extension('cogs.linkCommand')
+bot.load_extension('cogs.ignoreCommand')
+bot.load_extension('cogs.logCommand')
 
 # Initialize the bot
 init_database()

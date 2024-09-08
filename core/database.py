@@ -2,7 +2,12 @@ import csv
 import json
 import os
 
-from core.config import DATABASE_FILE
+from core.config import DATA_DIR
+
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+DATABASE_FILE = os.path.join(DATA_DIR, 'database.csv')
 
 def init_database():
     if not os.path.exists(DATABASE_FILE):

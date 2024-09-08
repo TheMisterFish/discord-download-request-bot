@@ -1,5 +1,3 @@
-import json
-
 class FarmData:
     _instance = None
     
@@ -16,7 +14,11 @@ class FarmData:
         self.farms[id]["name"] = name
         self.farms[id]["links"][channel] = link
         self.farms[id]["id"] = id
+
     def get_farms(self):
         return list(self.farms.values())
+    
+    def get_ids(self):
+        return list(self.farms.keys())
 
 farmdata = FarmData()

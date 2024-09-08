@@ -5,7 +5,6 @@ import discord
 from core.farmdata import farmdata
 from core.database import update_database
 
-
 async def process_message(message):
     match = re.search(r'DN : (.+)', message.content)
     if match:
@@ -53,7 +52,7 @@ async def scan_channel(ctx, channel):
             else:
                 await ctx.respond(result_message, ephemeral=True)
         else:
-            print(result_message)
+            print(f"✅ Scan finished for channel: {channel.name}. Processed {message_count} messages.")
     except Exception as e:
         error_message = f"❌ **An error occurred** while scanning {channel.name}: {str(e)}"
         if ctx:
@@ -62,10 +61,13 @@ async def scan_channel(ctx, channel):
             else:
                 await ctx.respond(error_message, ephemeral=True)
         else:
-            print(error_message)
+            print(f"❌ An error occurred while scanning {channel.name}: {str(e)}")
 
 def load_farms():
     return farmdata.get_farms()
 
 async def farm_autocomplete(ctx, farms):
     return [farm['name'] for farm in farms if ctx.value.lower() in farm['name'].lower()]
+
+async def id_autocomplete(ctx, farms):
+    return [farm_id for farm_id in farms if ctx.value.upper() in farm_id]

@@ -1,8 +1,9 @@
 import logging
-from logging.handlers import RotatingFileHandler
 import os
-from functools import wraps
 import inspect
+
+from functools import wraps
+from logging.handlers import RotatingFileHandler
 
 def setup_logger():
     if not os.path.exists('data/logs'):

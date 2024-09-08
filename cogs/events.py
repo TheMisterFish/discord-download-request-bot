@@ -49,6 +49,7 @@ class Events(commands.Cog):
         
         # Optionally, you can log the error for debugging
         logger.error(f"Error in command {ctx.command}: {str(error)}")
+        print(f"Error in command {ctx.command}: {str(error)}")
 
 def setup(bot):
     bot.add_cog(Events(bot))

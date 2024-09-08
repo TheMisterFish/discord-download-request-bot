@@ -5,18 +5,21 @@ from discord.commands import Option
 from fuzzywuzzy import fuzz, process
 
 from core.guards import is_not_ignored
-from core.utils import farm_autocomplete
+from core.utils import farm_autocomplete, id_autocomplete
 from core.database import get_entry
 from core.farmdata import farmdata
 
 from core.logger import command_logger
 
-class Commands(commands.Cog):
+class DownloadCommand(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     async def farm_name_autocomplete(self, ctx: discord.AutocompleteContext):
         return await farm_autocomplete(ctx, farmdata.get_farms())
+    
+    async def id_autocomplete(self, ctx: discord.AutocompleteContext):
+        return await id_autocomplete(ctx, farmdata.get_ids())
 
     @commands.slash_command(name="download", description="Search for a farm by name or ID")
     @is_not_ignored()
@@ -24,15 +27,15 @@ class Commands(commands.Cog):
     async def download(
         self,
         ctx,
-        query: Option(str, "Enter the farm name or ID", autocomplete=farm_name_autocomplete, required=False) = None,
-        id: Option(str, "Enter the download ID", required=False) = None
+        name: Option(str, "Enter the farm name", autocomplete=farm_name_autocomplete, required=False) = None,
+        id: Option(str, "Enter the download ID", autocomplete=id_autocomplete, required=False) = None
     ):
         if id:
             await self.download_by_id(ctx, id)
-        elif query:
-            await self.download_by_query(ctx, query)
+        elif name:
+            await self.download_by_query(ctx, name)
         else:
-            await ctx.respond("Please provide either a farm name or an ID.", ephemeral=True)
+            await ctx.respond("Please provide either a farm name, ID, or search name.", ephemeral=True)
 
     async def download_by_id(self, ctx, id: str):
         name, links = get_entry(str(id).upper())
@@ -79,12 +82,15 @@ class Commands(commands.Cog):
             await ctx.respond("No farms found matching your query.", ephemeral=True)
             return
 
-        if len(found_farms) > 3:
-            await ctx.respond("Too many results found. Please be more specific in your query.", ephemeral=True)
-            return
+        found_more = ""
+
+        if(len(found_farms) > 3):
+            found_more = "(more then) "
+
+        found_farms = found_farms[:3]
 
         embed = discord.Embed(
-            title=f"Found {len(found_farms)} farm{'s' if len(found_farms) > 1 else ''}:",
+            title=f"Found {found_more}{len(found_farms)} farm{'s' if len(found_farms) > 1 else ''}:",
             color=discord.Color.green()
         )
 
@@ -96,5 +102,6 @@ class Commands(commands.Cog):
 
         await ctx.respond(embed=embed)
 
+
 def setup(bot):
-    bot.add_cog(Commands(bot))
+    bot.add_cog(DownloadCommand(bot))
