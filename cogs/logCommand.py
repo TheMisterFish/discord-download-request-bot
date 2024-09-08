@@ -2,8 +2,32 @@ import discord
 from discord.ext import commands
 from discord import Option
 import os
-
 from core.guards import is_admin
+
+class LogPaginationView(discord.ui.View):
+    def __init__(self, cog, ctx, limit, page, timeout=60):
+        super().__init__(timeout=timeout)
+        self.cog = cog
+        self.ctx = ctx
+        self.limit = limit
+        self.page = page
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary, emoji="⬅️")
+    async def previous_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.page = max(1, self.page - 1)
+        await interaction.response.edit_message(embed=await self.cog.create_log_embed(self.limit, self.page), view=self)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary, emoji="➡️")
+    async def next_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.page += 1
+        new_embed = await self.cog.create_log_embed(self.limit, self.page)
+        if new_embed:
+            await interaction.response.edit_message(embed=new_embed, view=self)
+        else:
+            self.page -= 1  # Revert page increment if we've reached the end
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.ctx.author.id
 
 class LogCommand(commands.Cog):
     def __init__(self, bot):
@@ -17,7 +41,7 @@ class LogCommand(commands.Cog):
         ctx: discord.ApplicationContext,
         action: Option(str, "Choose action", choices=["download", "view"], required=True),
         limit: Option(int, "Number of lines to view (for 'view' action)", min_value=1, max_value=100, required=False) = 10,
-        page: Option(int, "page to offset to(for 'view' action)", min_value=0, max_value=100, required=False) = 0
+        page: Option(int, "Page to offset to (for 'view' action)", min_value=1, max_value=100, required=False) = 1
     ):
         if action == "download":
             await self.download_log(ctx)
@@ -40,21 +64,36 @@ class LogCommand(commands.Cog):
             return
 
         try:
-            with open(self.log_file_path, 'r') as file:
-                lines = file.readlines()
-                
-                start_index = max(0, len(lines) - (limit * page) - limit)
-
-                selected_lines = lines[start_index:start_index + limit]
-                log_content = ''.join(selected_lines)
-
-            if len(log_content) > 1980:
-                await ctx.respond("Log content is too long. Please use a smaller limit or download the full log.", ephemeral=True)
+            embed = await self.create_log_embed(limit, page)
+            if embed:
+                view = LogPaginationView(self, ctx, limit, page)
+                await ctx.respond(embed=embed, view=view, ephemeral=True)
             else:
-                await ctx.respond(f"{limit} log entries (offset by {limit * page}):\n```\n{log_content}\n```", ephemeral=True)
+                await ctx.respond("No log entries found.", ephemeral=True)
         except Exception as e:
             await ctx.respond(f"An error occurred while reading the log file: {str(e)}", ephemeral=True)
 
+    async def create_log_embed(self, limit, page):
+        with open(self.log_file_path, 'r') as file:
+            lines = file.readlines()
+
+        total_pages = (len(lines) + limit - 1) // limit
+        page = min(max(1, page), total_pages)
+
+        start_index = max(0, len(lines) - (page * limit))
+        end_index = start_index + limit
+
+        selected_lines = lines[start_index:end_index]
+        if not selected_lines:
+            return None
+
+        log_content = ''.join(selected_lines)
+
+        embed = discord.Embed(title="Log Entries", color=discord.Color.blue())
+        embed.description = f"```\n{log_content}\n```"
+        embed.set_footer(text=f"Page {page}/{total_pages} | {limit} entries per page")
+
+        return embed
 
 def setup(bot):
     bot.add_cog(LogCommand(bot))
