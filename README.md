@@ -18,7 +18,7 @@ It checks for posts with the following:
 ## Requirements
 
 - Python 3.8+
-- discord.py
+- py-chord
 - python-dotenv
 
 ## Installation
