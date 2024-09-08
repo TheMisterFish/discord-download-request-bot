@@ -46,10 +46,9 @@ class Events(commands.Cog):
             await ctx.respond("You cannot use this command at this time.", ephemeral=True)
         else:
             await ctx.respond(f"An error occurred", ephemeral=True)
-        
-        # Optionally, you can log the error for debugging
-        logger.error(f"Error in command {ctx.command}: {str(error)}")
-        print(f"Error in command {ctx.command}: {str(error)}")
+
+            logger.error(f"Error in command {ctx.command}: {str(error)}")
+            print(f"Error in command {ctx.command}: {str(error)}")
 
 def setup(bot):
     bot.add_cog(Events(bot))

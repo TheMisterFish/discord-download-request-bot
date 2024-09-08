@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord.ext.commands import cooldown, BucketType
 from discord.commands import Option
 
 from fuzzywuzzy import fuzz, process
@@ -24,6 +25,7 @@ class DownloadCommand(commands.Cog):
     @commands.slash_command(name="download", description="Search for a farm by name or ID")
     @is_not_ignored()
     @command_logger
+    @cooldown(1, 3, BucketType.user)
     async def download(
         self,
         ctx,
@@ -36,6 +38,12 @@ class DownloadCommand(commands.Cog):
             await self.download_by_query(ctx, name)
         else:
             await ctx.respond("Please provide either a farm name, ID, or search name.", ephemeral=True)
+
+    @download.error
+    async def download_error(self, ctx, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.respond(f"This command is on cooldown. Please try again in {error.retry_after:.2f} seconds.", ephemeral=True)
+            return
 
     async def download_by_id(self, ctx, id: str):
         name, links = get_entry(str(id).upper())
