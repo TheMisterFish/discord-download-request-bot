@@ -5,7 +5,7 @@
 This Discord bot manages and tracks links posted in specific channels. It allows users to search for downloads by number, ignore specific users, and manage link channels.
 
 It checks for posts with the following:
-- A DN number (`'DN : (\d+)'`)
+- A DN number (`'DN : (.+)'`)
 - A Link (`'Link : (https?://\S+)'`)
 ## Features
 
