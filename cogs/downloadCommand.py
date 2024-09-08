@@ -82,15 +82,12 @@ class DownloadCommand(commands.Cog):
             await ctx.respond("No farms found matching your query.", ephemeral=True)
             return
 
-        found_more = ""
-
-        if(len(found_farms) > 3):
-            found_more = "(more then) "
-
-        found_farms = found_farms[:3]
-
+        if len(found_farms) > 3:
+            await ctx.respond("Too many results found. Please be more specific in your query.", ephemeral=True)
+            return
+        
         embed = discord.Embed(
-            title=f"Found {found_more}{len(found_farms)} farm{'s' if len(found_farms) > 1 else ''}:",
+            title=f"Found {len(found_farms)} farm{'s' if len(found_farms) > 1 else ''}:",
             color=discord.Color.green()
         )
 
