@@ -5,6 +5,7 @@ from discord.errors import ApplicationCommandInvokeError
 
 from core.config import load_config
 from core.utils import process_message, scan_channel
+from core.guards import UserIgnoredError
 
 class Events(commands.Cog):
     def __init__(self, bot):
@@ -33,14 +34,18 @@ class Events(commands.Cog):
             await process_message(message)
 
     @commands.Cog.listener()
-    async def on_application_command_error(ctx: ApplicationContext, error: ApplicationCommandInvokeError):
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.respond("You are missing Administrator permission(s) to run this command.", ephemeral=True)
+    async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.respond(f"This command is on cooldown. Try again in {error.retry_after:.2f} seconds.", ephemeral=True)
+        elif isinstance(error, commands.MissingPermissions):
+            await ctx.respond("You don't have the necessary permissions to use this command.", ephemeral=True) 
         elif isinstance(error, UserIgnoredError):
-            await ctx.respond("You are currently ignored and cannot use bot commands.", ephemeral=True)
+            await ctx.respond("You cannot use this command at this time.", ephemeral=True)
         else:
-            # Handle other types of errors or raise them
-            raise error
+            await ctx.respond(f"An error occurred", ephemeral=True)
+        
+        # Optionally, you can log the error for debugging
+        print(f"Error in command {ctx.command}: {str(error)}")
 
 def setup(bot):
     bot.add_cog(Events(bot))

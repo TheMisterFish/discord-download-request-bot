@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import os
-from core.utils import init_database
+
+from core.database import init_database
 
 load_dotenv()
 
@@ -15,6 +16,7 @@ bot = discord.Bot(intents=intents)
 
 # Load cogs
 bot.load_extension('cogs.commands')
+bot.load_extension('cogs.adminCommands')
 bot.load_extension('cogs.events')
 
 # Initialize the bot

@@ -1,48 +1,10 @@
-import csv
-import json
 import re
 import asyncio
 import discord
-import os
 
-from core.config import DATABASE_FILE
+from core.farmdata import farmdata
+from core.database import update_database
 
-def init_database():
-    if not os.path.exists(DATABASE_FILE):
-        with open(DATABASE_FILE, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['ID', 'Name', 'Links'])
-
-def update_database(id: str, name, channel, link):
-    id = id.upper()
-    rows = []
-    updated = False
-    with open(DATABASE_FILE, 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if row[0] == id:
-                links = json.loads(row[2])
-                links[channel] = link
-                rows.append([id, name, json.dumps(links)])
-                updated = True
-            else:
-                rows.append(row)
-    
-    if not updated:
-        links = {channel: link}
-        rows.append([id, name, json.dumps(links)])
-    
-    with open(DATABASE_FILE, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerows(rows)
-
-def get_entry(id):
-    with open(DATABASE_FILE, 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if row[0] == id:
-                return row[1], json.loads(row[2])
-    return None, None
 
 async def process_message(message):
     match = re.search(r'DN : (.+)', message.content)
@@ -50,13 +12,13 @@ async def process_message(message):
         id = match.group(1)
         link_match = re.search(r'Link : (https?://\S+)', message.content)
         if link_match:
-            mediafire_link = link_match.group(1)
             name = await get_title_from_embed(message)
 
             if not name:
                 name = "Unknown Title"
 
             update_database(id, name, message.channel.name, message.jump_url)
+            farmdata.update_farm(id, name, message.channel.name, message.jump_url)
 
 async def get_title_from_embed(message):
     max_attempts = 10
@@ -101,3 +63,9 @@ async def scan_channel(ctx, channel):
                 await ctx.respond(error_message, ephemeral=True)
         else:
             print(error_message)
+
+def load_farms():
+    return farmdata.get_farms()
+
+async def farm_autocomplete(ctx, farms):
+    return [farm['name'] for farm in farms if ctx.value.lower() in farm['name'].lower()]

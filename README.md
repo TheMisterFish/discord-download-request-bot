@@ -18,7 +18,7 @@ It checks for posts with the following:
 ## Requirements
 
 - Python 3.8+
-- py-chord
+- py-cord
 - python-dotenv
 
 ## Installation
