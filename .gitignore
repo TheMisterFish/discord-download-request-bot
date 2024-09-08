@@ -7,6 +7,10 @@ config.json
 # Database file
 database.csv
 
+# data folder
+data/
+data/*
+
 # Python cache files
 __pycache__/
 *.py[cod]
