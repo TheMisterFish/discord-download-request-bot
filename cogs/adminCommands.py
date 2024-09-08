@@ -60,6 +60,9 @@ class AdminCommands(commands.Cog):
             embed = discord.Embed(title="Ignored Users", color=discord.Color.blue())
             embed.description = "\n".join(ignored_users)
             await ctx.respond(embed=embed, ephemeral=True)
+
+        else:
+            await ctx.respond("Invalid action. Please choose 'add', 'remove', or 'list'.")
     
     @commands.slash_command(name="linkchannel", description="Manage link channels")
     @is_admin()
@@ -77,21 +80,23 @@ class AdminCommands(commands.Cog):
                 if channel.name not in config['link_channels']:
                     config['link_channels'].append(channel.name)
                     save_config(config)
-                    await ctx.respond(f"✅ Added **{channel.name}** to link channels")
+                    await ctx.respond(f"✅ Added **{channel.name}** to link channels", ephemeral=True)
                 else:
-                    await ctx.respond(f"**{channel.name}** is already a link channel")
+                    await ctx.respond(f"**{channel.name}** is already a link channel", ephemeral=True)
             else:
-                await ctx.respond("Please specify a channel to add.")
+                await ctx.respond("Please specify a channel to add.", ephemeral=True)
+
         elif action == "remove":
             if channel:
                 if channel.name in config['link_channels']:
                     config['link_channels'].remove(channel.name)
                     save_config(config)
-                    await ctx.respond(f"✅ Removed **{channel.name}** from link channels")
+                    await ctx.respond(f"✅ Removed **{channel.name}** from link channels", ephemeral=True)
                 else:
-                    await ctx.respond(f"**{channel.name}** is not a link channel")
+                    await ctx.respond(f"**{channel.name}** is not a link channel", ephemeral=True)
             else:
-                await ctx.respond("Please specify a channel to remove.")
+                await ctx.respond("Please specify a channel to remove.", ephemeral=True)
+
         elif action == "scan":
             if channel:
                 await ctx.respond(f"🔍 Scanning channel **{channel}**", ephemeral=True)
@@ -105,6 +110,19 @@ class AdminCommands(commands.Cog):
                     else:
                         await ctx.followup.send(f"❌ Could not find channel: **{channel_name}**", ephemeral=True)
                 await ctx.followup.send("✅ Scan completed for all configured channels.", ephemeral=True)
+
+        elif action == "list":
+            if 'link_channels' not in config or not config['link_channels']:
+                await ctx.respond("No link channels are currently configured.", ephemeral=True)
+                return
+
+            link_channels = [f"• {channel}" for channel in config['link_channels']]
+            embed = discord.Embed(title=f"📋 Link Channels", color=discord.Color.blue())
+            embed.description = "\n".join(link_channels)
+            await ctx.respond(embed=embed, ephemeral=True)
+
+        else:
+            await ctx.respond("Invalid action. Please choose 'add', 'remove', 'scan', or 'list'.", ephemeral=True)
 
 def setup(bot):
     bot.add_cog(AdminCommands(bot))
