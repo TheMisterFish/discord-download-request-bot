@@ -5,14 +5,14 @@ from functools import wraps
 import inspect
 
 def setup_logger():
-    if not os.path.exists('logs'):
-        os.makedirs('logs')
+    if not os.path.exists('data/logs'):
+        os.makedirs('data/logs')
 
     logger = logging.getLogger('bot')
     logger.setLevel(logging.INFO)
 
     file_handler = RotatingFileHandler(
-        'logs/bot_commands.log', 
+        'data/logs/bot_commands.log', 
         maxBytes=5*1024*1024,  # 5 MB
         backupCount=5
     )
