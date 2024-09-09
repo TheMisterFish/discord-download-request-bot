@@ -5,7 +5,7 @@ from discord.commands import Option
 
 from fuzzywuzzy import fuzz, process
 
-from core.guards import is_not_ignored
+from core.guards import is_not_ignored, in_allowed_channel
 from core.utils import farm_autocomplete, id_autocomplete
 from core.database import get_entry
 from core.farmdata import farmdata
@@ -24,6 +24,7 @@ class DownloadCommand(commands.Cog):
 
     @commands.slash_command(name="download", description="Search for a farm by name or ID")
     @is_not_ignored()
+    @in_allowed_channel()
     @command_logger
     @cooldown(1, 3, BucketType.user)
     async def download(
@@ -38,6 +39,19 @@ class DownloadCommand(commands.Cog):
             await self.download_by_query(ctx, name)
         else:
             await ctx.respond("Please provide either a farm name, ID, or search name.", ephemeral=True)
+
+    @commands.slash_command(name="dn", description="Search for a farm by name or ID (shortcut)")
+    @is_not_ignored()
+    @in_allowed_channel()
+    @command_logger
+    @cooldown(1, 3, BucketType.user)
+    async def dn(
+        self,
+        ctx,
+        name: Option(str, "Enter the farm name", autocomplete=farm_name_autocomplete, required=False) = None,
+        id: Option(str, "Enter the download ID", autocomplete=id_autocomplete, required=False) = None
+    ):
+        await self.download(ctx, name, id)
 
     @download.error
     async def download_error(self, ctx, error):

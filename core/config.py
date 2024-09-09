@@ -10,7 +10,7 @@ CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
 
 def load_config():
     if not os.path.exists(CONFIG_FILE):
-        return {'link_channels': [], 'ignored_users': []}
+        return {'link_channels': [], 'allowed_channels': [], 'ignored_users': {}}
     with open(CONFIG_FILE, 'r') as f:
         return json.load(f)
 

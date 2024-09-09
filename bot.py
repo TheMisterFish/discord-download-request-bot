@@ -20,6 +20,7 @@ bot.load_extension('cogs.downloadCommand')
 bot.load_extension('cogs.linkCommand')
 bot.load_extension('cogs.ignoreCommand')
 bot.load_extension('cogs.logCommand')
+bot.load_extension('cogs.allowDownloadCommand')
 
 # Initialize the bot
 init_database()

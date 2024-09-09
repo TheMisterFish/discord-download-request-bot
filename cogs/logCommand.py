@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import Option
 import os
-from core.guards import is_admin
+from core.guards import is_moderator
 
 class LogPaginationView(discord.ui.View):
     def __init__(self, cog, ctx, limit, page, timeout=60):
@@ -35,7 +35,7 @@ class LogCommand(commands.Cog):
         self.log_file_path = 'data/logs/bot_commands.log'
 
     @commands.slash_command(name="log", description="Download log file or view recent logs")
-    @is_admin()
+    @is_moderator()
     async def log(
         self,
         ctx: discord.ApplicationContext,

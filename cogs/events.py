@@ -5,7 +5,7 @@ from discord.errors import ApplicationCommandInvokeError
 
 from core.config import load_config
 from core.utils import process_message, scan_channel
-from core.guards import UserIgnoredError
+from core.guards import UserIgnoredError, NotAllowedChannelError
 
 from core.logger import logger
 
@@ -44,11 +44,17 @@ class Events(commands.Cog):
             await ctx.respond("You don't have the necessary permissions to use this command.", ephemeral=True) 
         elif isinstance(error, UserIgnoredError):
             await ctx.respond("You cannot use this command at this time.", ephemeral=True)
+        elif isinstance(error, NotAllowedChannelError):
+            allowed_channels = load_config().get('allowed_channels', {})
+            channel_links = ", ".join([f"<#{channel_id}>" for channel_id in allowed_channels.keys()])
+            await ctx.respond(f"Please use the download command in the allowed text channels: {channel_links}.", ephemeral=True)
         else:
             await ctx.respond(f"An error occurred", ephemeral=True)
 
             logger.error(f"Error in command {ctx.command}: {str(error)}")
             print(f"Error in command {ctx.command}: {str(error)}")
+        # TODO failed commands logging
+        # TODO spam logging (to allow adcmin to see if someone is really spamming for no reason)
 
 def setup(bot):
     bot.add_cog(Events(bot))
