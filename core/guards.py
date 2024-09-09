@@ -1,5 +1,6 @@
 from discord.ext import commands
 from discord.ext.commands import CheckFailure
+
 from core.config import load_config
 
 class UserIgnoredError(CheckFailure):
@@ -16,6 +17,13 @@ def is_not_ignored():
         return True
     return commands.check(predicate)
 
+def is_admin():
+    async def predicate(ctx):
+        if not ctx.author.guild_permissions.administrator:
+            raise commands.MissingPermissions(["Administrator"])
+        return True
+    return commands.check(predicate)
+
 def is_moderator():
     async def predicate(ctx):
         if ctx.author.guild_permissions.administrator:
@@ -25,25 +33,25 @@ def is_moderator():
             return True
         
         raise commands.MissingPermissions(["Moderator"])
-    
     return commands.check(predicate)
 
 def in_allowed_channel():
     async def predicate(ctx):
-        # TODO: Add config that allows the admin/moderator to always use /download
-        # if ctx.author.guild_permissions.administrator:
-        #     return True
-        
-        # if ctx.author.guild_permissions.manage_messages and ctx.author.guild_permissions.kick_members:
-        #     return True
+        config = load_config()
+        admin_always_download = config.get('admin_always_download', False)
 
-        allowed_channels = load_config().get('allowed_channels', {})
+        if admin_always_download:
+            if ctx.author.guild_permissions.administrator:
+                return True
+            if ctx.author.guild_permissions.manage_messages and ctx.author.guild_permissions.kick_members:
+                return True
+
+        allowed_channels = config.get('allowed_channels', {})
         
         if not allowed_channels:
             return True
         
-        if not str(ctx.channel.id) in allowed_channels:
-            raise NotAllowedChannelError("This user is ignored and cannot use bot commands.")
+        if str(ctx.channel.id) not in allowed_channels:
+            raise NotAllowedChannelError("This command can only be used in allowed channels.")
         return True
-    
     return commands.check(predicate)

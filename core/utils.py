@@ -43,7 +43,10 @@ async def scan_channel(ctx, channel):
         async for message in channel.history(limit=None):
             await process_message(message)
             message_count += 1
-        
+            
+            if message_count % 100 == 0:
+                await asyncio.sleep(0)
+
         result_message = f"✅ Scan finished for channel: **{channel.name}**. Processed **{message_count}** messages."
         
         if ctx:
@@ -71,3 +74,12 @@ async def farm_autocomplete(ctx, farms):
 
 async def id_autocomplete(ctx, farms):
     return [farm_id for farm_id in farms if ctx.value.upper() in farm_id]
+
+async def farm_name_and_id_autocomplete(ctx, farm_ids, farms):
+    user_input = ctx.value.lower()
+    
+    name_matches = [farm['name'] for farm in farms if user_input in farm['name'].lower()]
+    id_matches = [farm_id for farm_id in farm_ids if user_input.upper() in farm_id]
+    
+    return list(set(name_matches + id_matches))
+

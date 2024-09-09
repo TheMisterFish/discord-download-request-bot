@@ -1,20 +1,22 @@
 import discord
 from discord.ext import commands
-from discord.ext.commands import cooldown, BucketType
 from discord.commands import Option
+from discord.ext.commands import CooldownMapping, BucketType
 
 from fuzzywuzzy import fuzz, process
 
 from core.guards import is_not_ignored, in_allowed_channel
-from core.utils import farm_autocomplete, id_autocomplete
+from core.utils import farm_autocomplete, id_autocomplete, farm_name_and_id_autocomplete
 from core.database import get_entry
 from core.farmdata import farmdata
-
 from core.logger import command_logger
+from core.config import load_config
 
 class DownloadCommand(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.config = load_config()
+        self.update_cooldown_mapping()
 
     async def farm_name_autocomplete(self, ctx: discord.AutocompleteContext):
         return await farm_autocomplete(ctx, farmdata.get_farms())
@@ -22,17 +24,35 @@ class DownloadCommand(commands.Cog):
     async def id_autocomplete(self, ctx: discord.AutocompleteContext):
         return await id_autocomplete(ctx, farmdata.get_ids())
 
+    async def farm_name_and_id_autocomplete(self, ctx: discord.AutocompleteContext):
+        return await farm_name_and_id_autocomplete(ctx, farmdata.get_ids(), farmdata.get_farms())
+
+    def update_cooldown_mapping(self):
+        self.cooldown_mapping = CooldownMapping.from_cooldown(
+            self.config.get('cooldown', {}).get('limit', 1),
+            self.config.get('cooldown', {}).get('timeout', 3),
+            BucketType.user
+        )
+        
+    async def check_cooldown(self, ctx):
+        bucket = self.cooldown_mapping.get_bucket(ctx)
+        retry_after = bucket.update_rate_limit()
+        if retry_after:
+            raise commands.CommandOnCooldown(bucket, retry_after, BucketType.user)
+        return True
+
     @commands.slash_command(name="download", description="Search for a farm by name or ID")
     @is_not_ignored()
     @in_allowed_channel()
     @command_logger
-    @cooldown(1, 3, BucketType.user)
     async def download(
         self,
         ctx,
         name: Option(str, "Enter the farm name", autocomplete=farm_name_autocomplete, required=False) = None,
         id: Option(str, "Enter the download ID", autocomplete=id_autocomplete, required=False) = None
     ):
+        await self.check_cooldown(ctx)
+
         if id:
             await self.download_by_id(ctx, id)
         elif name:
@@ -44,20 +64,30 @@ class DownloadCommand(commands.Cog):
     @is_not_ignored()
     @in_allowed_channel()
     @command_logger
-    @cooldown(1, 3, BucketType.user)
     async def dn(
         self,
         ctx,
-        name: Option(str, "Enter the farm name", autocomplete=farm_name_autocomplete, required=False) = None,
-        id: Option(str, "Enter the download ID", autocomplete=id_autocomplete, required=False) = None
+        input: Option(str, "Enter the farm name or id", autocomplete=farm_name_and_id_autocomplete, required=True)
     ):
-        await self.download(ctx, name, id)
+        await self.check_cooldown(ctx)
+        name, links = get_entry(str(input).upper())
+
+        if name:
+            await self.download_by_id(ctx, input)
+        else:
+            await self.download_by_query(ctx, input)
 
     @download.error
     async def download_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond(f"This command is on cooldown. Please try again in {error.retry_after:.2f} seconds.", ephemeral=True)
             return
+        
+    @commands.Cog.listener()
+    async def on_config_update(self):
+        self.config = load_config()
+        self.update_cooldown_mapping()
+
 
     async def download_by_id(self, ctx, id: str):
         name, links = get_entry(str(id).upper())

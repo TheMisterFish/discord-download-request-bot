@@ -22,6 +22,8 @@ class Events(commands.Cog):
             if channel:
                 await scan_channel(None, channel)
         logger.info('Initialization complete')
+        print('Initialization complete')
+
 
     @commands.Cog.listener()
     async def on_message(self, message):

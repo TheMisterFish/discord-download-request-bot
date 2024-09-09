@@ -24,7 +24,7 @@ class LogPaginationView(discord.ui.View):
         if new_embed:
             await interaction.response.edit_message(embed=new_embed, view=self)
         else:
-            self.page -= 1  # Revert page increment if we've reached the end
+            self.page -= 1
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.ctx.author.id
