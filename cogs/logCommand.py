@@ -1,3 +1,4 @@
+from core.logger import command_logger
 import discord
 from discord.ext import commands
 from discord import Option
@@ -36,6 +37,7 @@ class LogCommand(commands.Cog):
 
     @commands.slash_command(name="log", description="Download log file or view recent logs")
     @is_moderator()
+    @command_logger
     async def log(
         self,
         ctx: discord.ApplicationContext,

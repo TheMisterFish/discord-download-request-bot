@@ -40,6 +40,13 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
+        if isinstance(error, Exception) and not isinstance(error, discord.DiscordException):
+            logger.error(f"Error in command {ctx.command}: {str(error)}")
+            print(f"Error in command {ctx.command}: {str(error)}")
+            
+            await ctx.respond(f"An error occurred: {str(error)}", ephemeral=True)
+            return
+
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond(f"This command is on cooldown. Try again in {error.retry_after:.2f} seconds.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions):
@@ -51,12 +58,9 @@ class Events(commands.Cog):
             channel_links = ", ".join([f"<#{channel_id}>" for channel_id in allowed_channels.keys()])
             await ctx.respond(f"Please use the download command in the allowed text channels: {channel_links}.", ephemeral=True)
         else:
-            await ctx.respond(f"An error occurred", ephemeral=True)
-
-            logger.error(f"Error in command {ctx.command}: {str(error)}")
-            print(f"Error in command {ctx.command}: {str(error)}")
-        # TODO failed commands logging
-        # TODO spam logging (to allow adcmin to see if someone is really spamming for no reason)
+            await ctx.respond(f"An unexpected error occurred", ephemeral=True)
+            logger.error(f"Unexpected error in command {ctx.command}: {str(error)}")
+            print(f"Unexpected error in command {ctx.command}: {str(error)}")
 
 def setup(bot):
     bot.add_cog(Events(bot))
