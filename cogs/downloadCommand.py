@@ -49,16 +49,25 @@ class DownloadCommand(commands.Cog):
         name, links = get_entry(str(id).upper())
         if name:
             embed = discord.Embed(
-                title=f"{name}",
+                title=f"Found farm:",
                 color=discord.Color.green()
             )
+            server_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
+            if server_icon_url:
+                embed.set_thumbnail(url=server_icon_url)
             
-            field_value = f"ID: {id}\n\n"
+            user_avatar_url = ctx.author.display_avatar.url if ctx.author.display_avatar else None
+            if user_avatar_url:
+                embed.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=user_avatar_url)
+            else:
+                embed.set_footer(text=f"Requested by {ctx.author.display_name}")
+
+            field_value = f"ID: {id}\n"
             for link_type, link in links.items():
-                field_value += f"{link_type}: {link}\n"
+                field_value += f"- {link_type}: {link}\n"
             
-            embed.description = field_value
-            
+            embed.add_field(name=name, value=field_value, inline=False)
+
             await ctx.respond(embed=embed)
         else:
             error_embed = discord.Embed(
@@ -98,11 +107,14 @@ class DownloadCommand(commands.Cog):
             title=f"Found {len(found_farms)} farm{'s' if len(found_farms) > 1 else ''}:",
             color=discord.Color.green()
         )
-        server_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
-        if server_icon_url: embed.set_thumbnail(url=server_icon_url)
+
+        if ctx.guild.icon:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+
+        footer_text = f"Requested by {ctx.author.display_name}"
         user_avatar_url = ctx.author.display_avatar.url if ctx.author.display_avatar else None
-        embed.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=user_avatar_url) if user_avatar_url else embed.set_footer(text=f"Requested by {ctx.author.display_name}")
-        
+        embed.set_footer(text=footer_text, icon_url=user_avatar_url)
+
         for farm in found_farms:
             field_value = f"ID: {farm['id']}\n"
             for link_type, link in farm['links'].items():

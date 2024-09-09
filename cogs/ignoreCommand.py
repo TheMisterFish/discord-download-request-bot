@@ -54,15 +54,9 @@ class IgnoreCommand(commands.Cog):
                 await ctx.respond("No users are currently ignored.", ephemeral=True)
                 return
 
-            ignored_users = [f"<@{user_id}> {username} ({user_id})" for user_id, username in config['ignored_users'].items()]
+            ignored_users = [f"{username} (ID: {user_id})" for user_id, username in config['ignored_users'].items()]
             embed = discord.Embed(title="Ignored Users", color=discord.Color.blue())
             embed.description = "\n".join(ignored_users)
-
-            server_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
-            if server_icon_url: embed.set_thumbnail(url=server_icon_url)
-            user_avatar_url = ctx.author.display_avatar.url if ctx.author.display_avatar else None
-            embed.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=user_avatar_url) if user_avatar_url else embed.set_footer(text=f"Requested by {ctx.author.display_name}")
-
             await ctx.respond(embed=embed, ephemeral=True)
 
         else:
