@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord.commands import Option
 from discord.ext.commands import CooldownMapping, BucketType
 
-from fuzzywuzzy import fuzz, process
+from fuzzywuzzy import fuzz
 
 from core.guards import is_not_ignored, in_allowed_channel
 from core.utils import farm_autocomplete, id_autocomplete, farm_name_and_id_autocomplete

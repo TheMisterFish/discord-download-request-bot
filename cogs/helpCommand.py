@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from discord import Option
 
 from core.logger import command_logger
 

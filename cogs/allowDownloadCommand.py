@@ -4,7 +4,6 @@ from discord.commands import Option
 
 from core.guards import is_moderator
 from core.config import load_config, save_config
-from core.utils import scan_channel
 
 from core.logger import command_logger
 

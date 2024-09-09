@@ -4,7 +4,6 @@ import os
 
 from core.database import init_database
 from core.config import create_config
-from core.logger import logger, log_command
 
 load_dotenv()
 

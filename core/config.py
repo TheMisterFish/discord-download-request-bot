@@ -1,6 +1,5 @@
 import json
 import os
-from discord.ext import commands
 
 DATA_DIR = 'data'
 

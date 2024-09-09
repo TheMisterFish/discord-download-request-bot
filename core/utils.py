@@ -4,6 +4,7 @@ import discord
 
 from core.farmdata import farmdata
 from core.database import update_database
+from core.logger import logger
 
 async def process_message(message):
     match = re.search(r'DN : (.+)', message.content)
@@ -48,6 +49,7 @@ async def scan_channel(ctx, channel):
                 await asyncio.sleep(0)
 
         result_message = f"✅ Scan finished for channel: **{channel.name}**. Processed **{message_count}** messages."
+        logger.info(result_message)
         
         if ctx:
             if ctx.interaction.response.is_done():
@@ -58,6 +60,8 @@ async def scan_channel(ctx, channel):
             print(f"✅ Scan finished for channel: {channel.name}. Processed {message_count} messages.")
     except Exception as e:
         error_message = f"❌ **An error occurred** while scanning {channel.name}: {str(e)}"
+        logger.error(error_message)
+
         if ctx:
             if ctx.interaction.response.is_done():
                 await ctx.followup.send(error_message, ephemeral=True)

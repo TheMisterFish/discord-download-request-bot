@@ -1,7 +1,5 @@
 import discord
 from discord.ext import commands
-from discord import ApplicationContext
-from discord.errors import ApplicationCommandInvokeError
 
 from core.config import load_config
 from core.utils import process_message, scan_channel

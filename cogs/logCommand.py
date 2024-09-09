@@ -1,8 +1,10 @@
-from core.logger import command_logger
 import discord
 from discord.ext import commands
 from discord import Option
+
 import os
+
+from core.logger import command_logger
 from core.guards import is_moderator
 
 class LogPaginationView(discord.ui.View):

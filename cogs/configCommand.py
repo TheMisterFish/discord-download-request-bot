@@ -1,6 +1,6 @@
-import discord
 from discord.ext import commands
 from discord.commands import Option, SlashCommandGroup
+
 from core.config import load_config, save_config
 from core.guards import is_admin
 
