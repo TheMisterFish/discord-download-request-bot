@@ -98,7 +98,11 @@ class DownloadCommand(commands.Cog):
             title=f"Found {len(found_farms)} farm{'s' if len(found_farms) > 1 else ''}:",
             color=discord.Color.green()
         )
-
+        server_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
+        if server_icon_url: embed.set_thumbnail(url=server_icon_url)
+        user_avatar_url = ctx.author.display_avatar.url if ctx.author.display_avatar else None
+        embed.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=user_avatar_url) if user_avatar_url else embed.set_footer(text=f"Requested by {ctx.author.display_name}")
+        
         for farm in found_farms:
             field_value = f"ID: {farm['id']}\n"
             for link_type, link in farm['links'].items():
