@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from core.config import load_config
-from core.utils import process_download_message, scan_download_channel, scan_video_channel
+from core.utils import process_download_message, process_video_message, scan_download_channel, scan_video_channel
 from core.guards import UserIgnoredError, NotAllowedChannelError
 
 from core.logger import logger
@@ -38,12 +38,13 @@ class Events(commands.Cog):
         if str(message.author.id) in config['ignored_users']:
             return
 
-        if message.channel.name in config['download_channels']:
+        if str(message.channel.id) in config['download_channels']:
             logger.info(f"Processing download message in channel: {message.channel.name}")
             await process_download_message(message)
-        if message.channel.name in config['video_channels']:
+
+        if str(message.channel.id) in config['video_channels']:
             logger.info(f"Processing video message in channel: {message.channel.name}")
-            await process_download_message(message)
+            await process_video_message(message)
 
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):

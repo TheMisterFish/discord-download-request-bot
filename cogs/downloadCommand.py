@@ -133,7 +133,7 @@ class DownloadCommand(commands.Cog):
         query_words = query.split()
 
         found_farms = [
-            farm for farm in farmdata.get_farms()
+            farm for farm in datamanager.get_farms()
             if get_similarity(farm['name'], query_words) >= 75
         ]
 

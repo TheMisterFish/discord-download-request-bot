@@ -26,16 +26,16 @@ class VideoCommand(commands.Cog):
         title: Option(str, "Enter the video title", autocomplete=video_title_autocomplete, required=True)
     ):
         def get_similarity(video_title, query_words):
-            name = video_title.lower()
+            name = video_title.upper()
             
-            if all(word.lower() in name for word in query_words):
+            if all(word.upper() in name for word in query_words):
                 return 100
             
-            return fuzz.partial_ratio(query_words.lower(), name)
+            return fuzz.partial_ratio(query_words.upper(), name)
 
         matching_videos = [
             video for video in datamanager.get_videos()
-            if get_similarity(video['name'], title) >= 75
+            if get_similarity(video['name'], title) >= 90
         ]
 
 
@@ -64,12 +64,13 @@ class VideoCommand(commands.Cog):
         for video in matching_videos:
             name = video['name']
             links = video['links']
+            tag = video.get('tag', 'No tag')
             
             first_link = next(iter(links.values()))
             
             linked_name = f"[{name}]({first_link})"
             
-            embed.add_field(name=linked_name, value="\u200b", inline=False)
+            embed.add_field(name=linked_name, value=f"*{tag}*", inline=False)
 
         await ctx.respond(embed=embed)
 
