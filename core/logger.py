@@ -38,7 +38,7 @@ def log_command(ctx, command_name, params, result):
         if params['user'] is not None:
             params['user'] = f"{params['user'].name} (ID: {params['user'].id})"
         else:
-            params['user'] = "None"
+            params['user'] = None
 
     log_message = (
         f"Command: {command_name} | "
