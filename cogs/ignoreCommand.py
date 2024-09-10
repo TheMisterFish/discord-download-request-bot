@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.commands import Option
 
-from core.guards import is_admin
+from core.guards import is_moderator
 from core.config import load_config, save_config
 from core.logger import command_logger
 
@@ -11,7 +11,7 @@ class IgnoreCommand(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(name="ignore", description="Ignore, unignore, or list ignored users")
-    @is_admin()
+    @is_moderator()
     @command_logger
     async def ignore(
         self, 
@@ -27,7 +27,7 @@ class IgnoreCommand(commands.Cog):
             if not user:
                 await ctx.respond("You must specify a user to ignore.", ephemeral=True)
                 return
-            if user.guild_permissions.administrator:
+            if user.guild_permissions.administrator or (user.guild_permissions.manage_messages and user.guild_permissions.kick_members):
                 await ctx.respond(f"❌ Cannot ignore an admin. **{user.name}** is an administrator.", ephemeral=True)
                 return
 

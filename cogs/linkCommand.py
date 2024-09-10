@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.commands import Option
 
-from core.guards import is_admin
+from core.guards import is_moderator
 from core.config import load_config, save_config
 from core.utils import scan_channel
 
@@ -13,7 +13,7 @@ class LinkCommand(commands.Cog):
         self.bot = bot
     
     @commands.slash_command(name="linkchannel", description="Manage link channels")
-    @is_admin()
+    @is_moderator()
     @command_logger
     async def linkchannel(
         self, 

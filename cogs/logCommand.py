@@ -1,8 +1,11 @@
 import discord
 from discord.ext import commands
 from discord import Option
+
 import os
-from core.guards import is_admin
+
+from core.logger import command_logger
+from core.guards import is_moderator
 
 class LogPaginationView(discord.ui.View):
     def __init__(self, cog, ctx, limit, page, timeout=60):
@@ -24,7 +27,7 @@ class LogPaginationView(discord.ui.View):
         if new_embed:
             await interaction.response.edit_message(embed=new_embed, view=self)
         else:
-            self.page -= 1  # Revert page increment if we've reached the end
+            self.page -= 1
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.ctx.author.id
@@ -35,7 +38,8 @@ class LogCommand(commands.Cog):
         self.log_file_path = 'data/logs/bot_commands.log'
 
     @commands.slash_command(name="log", description="Download log file or view recent logs")
-    @is_admin()
+    @is_moderator()
+    @command_logger
     async def log(
         self,
         ctx: discord.ApplicationContext,

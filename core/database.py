@@ -3,6 +3,7 @@ import json
 import os
 
 from core.config import DATA_DIR
+from core.logger import logger
 
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
@@ -33,7 +34,8 @@ def update_database(id: str, name, channel, link):
     if not updated:
         links = {channel: link}
         rows.append([id, name, json.dumps(links)])
-    
+        logger.info(f"Added new entry to database: ID={id}, Name={name}, Channel={channel}")
+
     with open(DATABASE_FILE, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerows(rows)

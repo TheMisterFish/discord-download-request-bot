@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import inspect
@@ -32,12 +33,22 @@ def log_command(ctx, command_name, params, result):
     user = ctx.author
     guild = ctx.guild
     channel = ctx.channel
-    
-    log_message = f"Command: {command_name} | Params: {params} | User: {user} (ID: {user.id}) | " \
-                  f"Guild: {guild.name} (ID: {guild.id}) | " \
-                  f"Channel: {channel.name} (ID: {channel.id}) | " \
-                  f"Result: {result}"
-    
+
+    if 'user' in params:
+        if params['user'] is not None:
+            params['user'] = f"{params['user'].name} (ID: {params['user'].id})"
+        else:
+            params['user'] = "None"
+
+    log_message = (
+        f"Command: {command_name} | "
+        f"Params: {params} | "
+        f"User: {user.name} (ID: {user.id}) | "
+        f"Guild: {guild.name} (ID: {guild.id}) | "
+        f"Channel: {channel.name} | "
+        f"Result: {result}"
+    )
+
     logger.info(log_message)
 
 def command_logger(func):
@@ -59,7 +70,24 @@ def command_logger(func):
         
         try:
             result = await func(*args, **kwargs)
-            log_command(ctx, command_name, params, "Command executed successfully")
+
+            try:
+                await asyncio.sleep(0.1)
+                
+                if ctx.interaction.response.is_done():
+                    response_message = await ctx.interaction.original_response()
+                    
+                    if response_message.embeds:
+                        response_content = f"Embed: {response_message.embeds[0].title}"
+                    else:
+                        response_content = response_message.content
+                else:
+                    response_content = "No response sent"
+
+                log_command(ctx, command_name, params, f"Success: {response_content}")
+            except Exception as e:
+                log_command(ctx, command_name, params, f"Success: Unable to retrieve response content. Error: {str(e)}")
+            
             return result
         except Exception as e:
             log_command(ctx, command_name, params, f"Error: {str(e)}")

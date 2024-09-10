@@ -4,6 +4,7 @@ import discord
 
 from core.farmdata import farmdata
 from core.database import update_database
+from core.logger import logger
 
 async def process_message(message):
     match = re.search(r'DN : (.+)', message.content)
@@ -43,8 +44,12 @@ async def scan_channel(ctx, channel):
         async for message in channel.history(limit=None):
             await process_message(message)
             message_count += 1
-        
+            
+            if message_count % 100 == 0:
+                await asyncio.sleep(0)
+
         result_message = f"✅ Scan finished for channel: **{channel.name}**. Processed **{message_count}** messages."
+        logger.info(result_message)
         
         if ctx:
             if ctx.interaction.response.is_done():
@@ -55,6 +60,8 @@ async def scan_channel(ctx, channel):
             print(f"✅ Scan finished for channel: {channel.name}. Processed {message_count} messages.")
     except Exception as e:
         error_message = f"❌ **An error occurred** while scanning {channel.name}: {str(e)}"
+        logger.error(error_message)
+
         if ctx:
             if ctx.interaction.response.is_done():
                 await ctx.followup.send(error_message, ephemeral=True)
@@ -71,3 +78,12 @@ async def farm_autocomplete(ctx, farms):
 
 async def id_autocomplete(ctx, farms):
     return [farm_id for farm_id in farms if ctx.value.upper() in farm_id]
+
+async def farm_name_and_id_autocomplete(ctx, farm_ids, farms):
+    user_input = ctx.value.lower()
+    
+    name_matches = [farm['name'] for farm in farms if user_input in farm['name'].lower()]
+    id_matches = [farm_id for farm_id in farm_ids if user_input.upper() in farm_id]
+    
+    return list(set(name_matches + id_matches))
+
