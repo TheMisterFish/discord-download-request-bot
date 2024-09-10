@@ -19,12 +19,13 @@ class HelpCommand(commands.Cog):
         if ctx.author.guild_permissions.administrator:
             is_admin = True
         
-        embed = discord.Embed(title="Bot Help", color=discord.Color.blue())
+        embed = discord.Embed(title="ℹ️ Bot Help", color=discord.Color.blue())
 
         # User commands
         embed.add_field(name="__**User Commands**__", value="", inline=False)
         embed.add_field(name="/download [name] [id]", value="Search for a farm by name or ID. Use either name or ID.", inline=False)
         embed.add_field(name="/dn <input>", value="Shortcut for /download. Enter farm name or ID.", inline=False)
+        embed.add_field(name="/help", value="Shows this!", inline=False)
 
         if is_mod or is_admin:
             # Moderator commands

@@ -55,7 +55,7 @@ class IgnoreCommand(commands.Cog):
                 return
 
             ignored_users = [f"{username} (ID: {user_id})" for user_id, username in config['ignored_users'].items()]
-            embed = discord.Embed(title="Ignored Users", color=discord.Color.blue())
+            embed = discord.Embed(title="🤐 Ignored Users", color=discord.Color.blue())
             embed.description = "\n".join(ignored_users)
             await ctx.respond(embed=embed, ephemeral=True)
 

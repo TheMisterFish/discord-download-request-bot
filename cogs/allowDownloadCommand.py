@@ -53,7 +53,7 @@ class AllowDownloadCommand(commands.Cog):
                 return
 
             allowed_channels = [f"• <#{channel_id}> ({channel_name})" for channel_id, channel_name in config['allowed_channels'].items()]
-            embed = discord.Embed(title="📋 Allowed channels to download from:", color=discord.Color.blue())
+            embed = discord.Embed(title="🆗 Allowed channels to download from:", color=discord.Color.blue())
             embed.description = "\n".join(allowed_channels)
             await ctx.respond(embed=embed, ephemeral=True)
 
