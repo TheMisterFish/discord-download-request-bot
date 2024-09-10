@@ -16,7 +16,8 @@ def load_config():
                 'timeout': 3
             },
             'admin_always_download': True,
-            'link_channels': {},
+            'download_channels': {},
+            'video_channels': {},
             'allowed_channels': {},
             'ignored_users': {},
         }

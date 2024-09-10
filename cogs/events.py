@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from core.config import load_config
-from core.utils import process_message, scan_channel
+from core.utils import process_download_message, scan_download_channel, scan_video_channel
 from core.guards import UserIgnoredError, NotAllowedChannelError
 
 from core.logger import logger
@@ -15,10 +15,16 @@ class Events(commands.Cog):
     async def on_ready(self):
         logger.info(f'Logged in as {self.bot.user.name}')
         config = load_config()
-        for channel_name in config['link_channels']:
+
+        for channel_id, channel_name in config['download_channels'].items():
             channel = discord.utils.get(self.bot.get_all_channels(), name=channel_name)
             if channel:
-                await scan_channel(None, channel)
+                await scan_download_channel(None, channel)
+        for channel_id, channel_name in config['video_channels'].items():
+            channel = discord.utils.get(self.bot.get_all_channels(), name=channel_name)
+            if channel:
+                await scan_video_channel(None, channel)
+
         logger.info('Initialization complete')
         print('Initialization complete')
 
@@ -32,9 +38,12 @@ class Events(commands.Cog):
         if str(message.author.id) in config['ignored_users']:
             return
 
-        if message.channel.name in config['link_channels']:
-            logger.info(f"Processing message in channel: {message.channel.name}")
-            await process_message(message)
+        if message.channel.name in config['download_channels']:
+            logger.info(f"Processing download message in channel: {message.channel.name}")
+            await process_download_message(message)
+        if message.channel.name in config['video_channels']:
+            logger.info(f"Processing video message in channel: {message.channel.name}")
+            await process_download_message(message)
 
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):

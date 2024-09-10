@@ -7,8 +7,8 @@ from fuzzywuzzy import fuzz
 
 from core.guards import is_not_ignored, in_allowed_channel
 from core.utils import farm_autocomplete, id_autocomplete, farm_name_and_id_autocomplete
-from core.database import get_entry
-from core.farmdata import farmdata
+from core.database import get_download_entry
+from core.datamanager import datamanager
 from core.logger import command_logger
 from core.config import load_config
 
@@ -19,13 +19,13 @@ class DownloadCommand(commands.Cog):
         self.update_cooldown_mapping()
 
     async def farm_name_autocomplete(self, ctx: discord.AutocompleteContext):
-        return await farm_autocomplete(ctx, farmdata.get_farms())
+        return await farm_autocomplete(ctx, datamanager.get_farms())
     
     async def id_autocomplete(self, ctx: discord.AutocompleteContext):
-        return await id_autocomplete(ctx, farmdata.get_ids())
+        return await id_autocomplete(ctx, datamanager.get_farm_ids())
 
     async def farm_name_and_id_autocomplete(self, ctx: discord.AutocompleteContext):
-        return await farm_name_and_id_autocomplete(ctx, farmdata.get_ids(), farmdata.get_farms())
+        return await farm_name_and_id_autocomplete(ctx, datamanager.get_farm_ids(), datamanager.get_farms())
 
     def update_cooldown_mapping(self):
         self.cooldown_mapping = CooldownMapping.from_cooldown(
@@ -70,7 +70,7 @@ class DownloadCommand(commands.Cog):
         input: Option(str, "Enter the farm name or id", autocomplete=farm_name_and_id_autocomplete, required=True)
     ):
         await self.check_cooldown(ctx)
-        name, links = get_entry(str(input).upper())
+        name, links = get_download_entry(str(input).upper())
 
         if name:
             await self.download_by_id(ctx, input)
@@ -90,7 +90,7 @@ class DownloadCommand(commands.Cog):
 
 
     async def download_by_id(self, ctx, id: str):
-        name, links = get_entry(str(id).upper())
+        name, links = get_download_entry(str(id).upper())
         if name:
             embed = discord.Embed(
                 title=f"Found farm:",
@@ -107,8 +107,8 @@ class DownloadCommand(commands.Cog):
                 embed.set_footer(text=f"Requested by {ctx.author.display_name}")
 
             field_value = f"ID: {id}\n"
-            for link_type, link in links.items():
-                field_value += f"- {link_type}: {link}\n"
+            for download_type, link in links.items():
+                field_value += f"- {download_type}: {link}\n"
             
             embed.add_field(name=name, value=field_value, inline=False)
 
@@ -161,8 +161,8 @@ class DownloadCommand(commands.Cog):
 
         for farm in found_farms:
             field_value = f"ID: {farm['id']}\n"
-            for link_type, link in farm['links'].items():
-                field_value += f"- {link_type}: {link}\n"
+            for download_type, link in farm['links'].items():
+                field_value += f"- {download_type}: {link}\n"
             embed.add_field(name=farm['name'], value=field_value, inline=False)
 
         await ctx.respond(embed=embed)

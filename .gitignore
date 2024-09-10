@@ -1,12 +1,6 @@
 # Environment variables
 .env
 
-# Configuration file
-config.json
-
-# Database file
-database.csv
-
 # data folder
 data/
 data/*
