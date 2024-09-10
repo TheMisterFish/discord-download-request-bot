@@ -23,10 +23,13 @@ class LinkCommand(commands.Cog):
     ):
         config = load_config()
 
+        if 'link_channels' not in config:
+            config['link_channels'] = {}
+
         if action == "add":
             if channel:
-                if channel.name not in config['link_channels']:
-                    config['link_channels'].append(channel.name)
+                if str(channel.id) not in config['link_channels']:
+                    config['link_channels'][str(channel.id)] = channel.name
                     save_config(config)
                     await ctx.respond(f"✅ Added **{channel.name}** to link channels", ephemeral=True)
                 else:
@@ -36,8 +39,8 @@ class LinkCommand(commands.Cog):
 
         elif action == "remove":
             if channel:
-                if channel.name in config['link_channels']:
-                    config['link_channels'].remove(channel.name)
+                if str(channel.id) in config['link_channels']:
+                    del config['link_channels'][str(channel.id)]
                     save_config(config)
                     await ctx.respond(f"✅ Removed **{channel.name}** from link channels", ephemeral=True)
                 else:
@@ -51,7 +54,7 @@ class LinkCommand(commands.Cog):
                 await scan_channel(ctx, channel)
             else:
                 await ctx.respond("🔍 Scanning all configured channels...", ephemeral=True)
-                for channel_name in config['link_channels']:
+                for channel_id, channel_name in config['link_channels'].items():
                     channel = discord.utils.get(ctx.guild.channels, name=channel_name)
                     if channel:
                         await scan_channel(ctx, channel)
@@ -64,7 +67,7 @@ class LinkCommand(commands.Cog):
                 await ctx.respond("No link channels are currently configured.", ephemeral=True)
                 return
 
-            link_channels = [f"• {channel}" for channel in config['link_channels']]
+            link_channels = [f"• <#{channel_id}> ({channel_name})" for channel_id, channel_name in config['link_channels'].items()]
             embed = discord.Embed(title=f"📋 Link Channels", color=discord.Color.blue())
             embed.description = "\n".join(link_channels)
             await ctx.respond(embed=embed, ephemeral=True)
