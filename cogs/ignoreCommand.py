@@ -19,7 +19,8 @@ class IgnoreCommand(commands.Cog):
         action: Option(str, "Choose to add, remove, or list ignored users", choices=["add", "remove", "list"]),
         user: Option(discord.Member, "The user to ignore or unignore", required=False) = None
     ):
-        config = load_config()
+        server_id = ctx.guild.id
+        config = load_config(server_id)
         if 'ignored_users' not in config:
             config['ignored_users'] = {}
 
@@ -33,7 +34,8 @@ class IgnoreCommand(commands.Cog):
 
             if str(user.id) not in config['ignored_users']:
                 config['ignored_users'][str(user.id)] = user.name
-                save_config(config)
+
+                save_config(server_id, config)
                 await ctx.respond(f"✅ Now ignoring user: **{user.name}**", ephemeral=True)
             else:
                 await ctx.respond(f"Already ignoring user: **{user.name}**", ephemeral=True)
@@ -44,7 +46,7 @@ class IgnoreCommand(commands.Cog):
                 return
             if str(user.id) in config['ignored_users']:
                 del config['ignored_users'][str(user.id)]
-                save_config(config)
+                save_config(server_id, config)
                 await ctx.respond(f"✅ User **{user.name}** is no longer ignored.", ephemeral=True)
             else:
                 await ctx.respond(f"User **{user.name}** is not currently ignored.", ephemeral=True)

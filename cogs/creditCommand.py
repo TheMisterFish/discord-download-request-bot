@@ -2,11 +2,14 @@ import discord
 from discord.commands import slash_command
 from discord.ext import commands
 
+from core.logger import command_logger
+
 class CreditCommand(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @slash_command(name="credits", description="Show credits for the bot")
+    @command_logger
     async def credits(self, ctx):
         embed = discord.Embed(
             title="Bot Credits",

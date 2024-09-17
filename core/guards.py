@@ -11,7 +11,8 @@ class NotAllowedChannelError(CheckFailure):
 
 def is_not_ignored():
     async def predicate(ctx):
-        config = load_config()
+        server_id = ctx.guild.id
+        config = load_config(server_id)
         if str(ctx.author.id) in config['ignored_users']:
             raise UserIgnoredError("This user is ignored and cannot use bot commands.")
         return True
@@ -37,7 +38,8 @@ def is_moderator():
 
 def in_allowed_channel():
     async def predicate(ctx):
-        config = load_config()
+        server_id = ctx.guild.id
+        config = load_config(server_id)
         admin_always_download = config.get('admin_always_download', False)
 
         if admin_always_download:

@@ -2,9 +2,8 @@ import re
 import asyncio
 import discord
 
-from core.datamanager import datamanager
-from core.database import update_download_database, update_video_database
-from core.logger import logger
+from core.database import get_server_database
+from core.logger import get_server_logger
 
 async def process_download_message(message):
     match = re.search(r'DN : (.+)', message.content)
@@ -17,8 +16,9 @@ async def process_download_message(message):
             if not name:
                 name = "Unknown Title"
 
-            update_download_database(id, name, message.channel.name, message.jump_url)
-            datamanager.update_farm(id, name, message.channel.name, message.jump_url)
+            server_id = message.guild.id
+            db = get_server_database(server_id)
+            db.update_download_database(id, name, message.channel.name, message.jump_url)
 
 async def process_video_message(message):
     youtube_link = re.search(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})', message.content)
@@ -34,8 +34,9 @@ async def process_video_message(message):
 
         tag = tag_match.group(0) if tag_match else ""
         
-        update_video_database(name, message.channel.name, message.jump_url, tag)
-        datamanager.update_video(name, message.channel.name, message.jump_url, tag)
+        server_id = message.guild.id
+        db = get_server_database(server_id)
+        db.update_video_database(name, message.channel.name, message.jump_url, tag)
 
 async def get_title_from_embed(message):
     max_attempts = 10
@@ -55,7 +56,15 @@ async def get_title_from_embed(message):
 
     return None
 
-async def scan_download_channel(ctx, channel):
+async def scan_download_channel(ctx, channel, server_id=None):
+    if server_id is None:
+        if ctx and ctx.guild:
+            server_id = ctx.guild.id
+        else:
+            raise ValueError("server_id must be provided if not available in ctx")
+
+    serverLogger = get_server_logger(server_id)
+    
     try:
         message_count = 0
         async for message in channel.history(limit=None):
@@ -66,7 +75,7 @@ async def scan_download_channel(ctx, channel):
                 await asyncio.sleep(0)
 
         result_message = f"✅ Scan finished for channel: **{channel.name}**. Processed **{message_count}** messages."
-        logger.info(result_message)
+        serverLogger.logger.info(result_message)
         
         if ctx:
             if ctx.interaction.response.is_done():
@@ -77,7 +86,7 @@ async def scan_download_channel(ctx, channel):
             print(f"✅ Scan finished for channel: {channel.name}. Processed {message_count} messages.")
     except Exception as e:
         error_message = f"❌ **An error occurred** while scanning {channel.name}: {str(e)}"
-        logger.error(error_message)
+        serverLogger.logger.error(error_message)
 
         if ctx:
             if ctx.interaction.response.is_done():
@@ -87,7 +96,15 @@ async def scan_download_channel(ctx, channel):
         else:
             print(f"❌ An error occurred while scanning {channel.name}: {str(e)}")
 
-async def scan_video_channel(ctx, channel):
+async def scan_video_channel(ctx, channel, server_id=None):
+    if server_id is None:
+        if ctx and ctx.guild:
+            server_id = ctx.guild.id
+        else:
+            raise ValueError("server_id must be provided if not available in ctx")
+
+    serverLogger = get_server_logger(server_id)
+    
     try:
         message_count = 0
         async for message in channel.history(limit=None):
@@ -98,7 +115,7 @@ async def scan_video_channel(ctx, channel):
                 await asyncio.sleep(0)
 
         result_message = f"✅ Video scan finished for channel: **{channel.name}**. Processed **{message_count}** messages."
-        logger.info(result_message)
+        serverLogger.logger.info(result_message)
         
         if ctx:
             if ctx.interaction.response.is_done():
@@ -109,7 +126,7 @@ async def scan_video_channel(ctx, channel):
             print(f"✅ Video scan finished for channel: {channel.name}. Processed {message_count} messages.")
     except Exception as e:
         error_message = f"❌ **An error occurred** while scanning video channel {channel.name}: {str(e)}"
-        logger.error(error_message)
+        serverLogger.logger.error(error_message)
 
         if ctx:
             if ctx.interaction.response.is_done():
@@ -118,23 +135,3 @@ async def scan_video_channel(ctx, channel):
                 await ctx.respond(error_message, ephemeral=True)
         else:
             print(f"❌ An error occurred while scanning video channel {channel.name}: {str(e)}")
-
-def load_farms():
-    return datamanager.get_farms()
-
-async def farm_autocomplete(ctx, farms):
-    return [farm['name'] for farm in farms if ctx.value.lower() in farm['name'].lower()]
-
-async def id_autocomplete(ctx, farms):
-    return [farm_id for farm_id in farms if ctx.value.upper() in farm_id]
-
-async def farm_name_and_id_autocomplete(ctx, farm_ids, farms):
-    user_input = ctx.value.lower()
-    
-    name_matches = [farm['name'] for farm in farms if user_input in farm['name'].lower()]
-    id_matches = [farm_id for farm_id in farm_ids if user_input.upper() in farm_id]
-    
-    return list(set(name_matches + id_matches))
-
-async def video_title_autocomplete(ctx, videos):
-    return [entry[0] for entry in videos if ctx.value.lower() in entry[0].lower()]

@@ -1,10 +1,9 @@
 import discord
 from discord.ext import commands
 from discord import Option
-
 import os
 
-from core.logger import command_logger
+from core.logger import command_logger, get_server_logger
 from core.guards import is_moderator
 
 class LogPaginationView(discord.ui.View):
@@ -18,12 +17,12 @@ class LogPaginationView(discord.ui.View):
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary, emoji="⬅️")
     async def previous_button(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.page = max(1, self.page - 1)
-        await interaction.response.edit_message(embed=await self.cog.create_log_embed(self.limit, self.page), view=self)
+        await interaction.response.edit_message(embed=await self.cog.create_log_embed(interaction.guild.id, self.limit, self.page), view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary, emoji="➡️")
     async def next_button(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.page += 1
-        new_embed = await self.cog.create_log_embed(self.limit, self.page)
+        new_embed = await self.cog.create_log_embed(interaction.guild.id, self.limit, self.page)
         if new_embed:
             await interaction.response.edit_message(embed=new_embed, view=self)
         else:
@@ -35,7 +34,9 @@ class LogPaginationView(discord.ui.View):
 class LogCommand(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.log_file_path = 'data/logs/bot_commands.log'
+
+    def get_log_file_path(self, server_id):
+        return f'data/{server_id}/bot_commands.log'
 
     @commands.slash_command(name="log", description="Download log file or view recent logs")
     @is_moderator()
@@ -47,28 +48,31 @@ class LogCommand(commands.Cog):
         limit: Option(int, "Number of lines to view (for 'view' action)", min_value=1, max_value=100, required=False) = 10,
         page: Option(int, "Page to offset to (for 'view' action)", min_value=1, max_value=100, required=False) = 1
     ):
+        server_id = ctx.guild.id
         if action == "download":
-            await self.download_log(ctx)
+            await self.download_log(ctx, server_id)
         elif action == "view":
-            await self.view_log(ctx, limit, page)
+            await self.view_log(ctx, server_id, limit, page)
 
-    async def download_log(self, ctx):
-        if not os.path.exists(self.log_file_path):
+    async def download_log(self, ctx, server_id):
+        log_file_path = self.get_log_file_path(server_id)
+        if not os.path.exists(log_file_path):
             await ctx.respond("Log file not found.", ephemeral=True)
             return
 
         try:
-            await ctx.respond("Here's the log file:", file=discord.File(self.log_file_path), ephemeral=True)
+            await ctx.respond("Here's the log file:", file=discord.File(log_file_path), ephemeral=True)
         except Exception as e:
             await ctx.respond(f"An error occurred while sending the log file: {str(e)}", ephemeral=True)
 
-    async def view_log(self, ctx, limit, page):
-        if not os.path.exists(self.log_file_path):
+    async def view_log(self, ctx, server_id, limit, page):
+        log_file_path = self.get_log_file_path(server_id)
+        if not os.path.exists(log_file_path):
             await ctx.respond("Log file not found.", ephemeral=True)
             return
 
         try:
-            embed = await self.create_log_embed(limit, page)
+            embed = await self.create_log_embed(server_id, limit, page)
             if embed:
                 view = LogPaginationView(self, ctx, limit, page)
                 await ctx.respond(embed=embed, view=view, ephemeral=True)
@@ -77,8 +81,9 @@ class LogCommand(commands.Cog):
         except Exception as e:
             await ctx.respond(f"An error occurred while reading the log file: {str(e)}", ephemeral=True)
 
-    async def create_log_embed(self, limit, page):
-        with open(self.log_file_path, 'r') as file:
+    async def create_log_embed(self, server_id, limit, page):
+        log_file_path = self.get_log_file_path(server_id)
+        with open(log_file_path, 'r') as file:
             lines = file.readlines()
 
         total_pages = (len(lines) + limit - 1) // limit

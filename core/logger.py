@@ -2,54 +2,65 @@ import asyncio
 import logging
 import os
 import inspect
-
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 
-def setup_logger():
-    if not os.path.exists('data/logs'):
-        os.makedirs('data/logs')
+class ServerLogger:
+    def __init__(self, server_id):
+        self.server_id = server_id
+        self.logger = self.setup_logger()
 
-    logger = logging.getLogger('bot')
-    logger.setLevel(logging.INFO)
+    def setup_logger(self):
+        log_dir = f'data/{self.server_id}'
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
 
-    file_handler = RotatingFileHandler(
-        'data/logs/bot_commands.log', 
-        maxBytes=5*1024*1024,  # 5 MB
-        backupCount=5
-    )
-    file_handler.setLevel(logging.INFO)
+        logger = logging.getLogger(f'bot_server_{self.server_id}')
+        logger.setLevel(logging.INFO)
 
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
+        file_handler = RotatingFileHandler(
+            f'{log_dir}/bot_commands.log', 
+            maxBytes=5*1024*1024,  # 5 MB
+            backupCount=5
+        )
+        file_handler.setLevel(logging.INFO)
 
-    logger.addHandler(file_handler)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
 
-    return logger
+        logger.addHandler(file_handler)
 
-logger = setup_logger()
+        return logger
 
-def log_command(ctx, command_name, params, result):
-    user = ctx.author
-    guild = ctx.guild
-    channel = ctx.channel
+    def log_command(self, ctx, command_name, params, result):
+        user = ctx.author
+        guild = ctx.guild
+        channel = ctx.channel
 
-    if 'user' in params:
-        if params['user'] is not None:
-            params['user'] = f"{params['user'].name} (ID: {params['user'].id})"
-        else:
-            params['user'] = None
+        if 'user' in params:
+            if params['user'] is not None:
+                params['user'] = f"{params['user'].name} (ID: {params['user'].id})"
+            else:
+                params['user'] = None
 
-    log_message = (
-        f"Command: {command_name} | "
-        f"Params: {params} | "
-        f"User: {user.name} (ID: {user.id}) | "
-        f"Guild: {guild.name} (ID: {guild.id}) | "
-        f"Channel: {channel.name} | "
-        f"Result: {result}"
-    )
+        log_message = (
+            f"Command: {command_name} | "
+            f"Params: {params} | "
+            f"User: {user.name} (ID: {user.id}) | "
+            f"Guild: {guild.name} (ID: {guild.id}) | "
+            f"Channel: {channel.name} | "
+            f"Result: {result}"
+        )
 
-    logger.info(log_message)
+        self.logger.info(log_message)
+
+# Dictionary to store logger instances for each server
+server_loggers = {}
+
+def get_server_logger(server_id):
+    if server_id not in server_loggers:
+        server_loggers[server_id] = ServerLogger(server_id)
+    return server_loggers[server_id]
 
 def command_logger(func):
     @wraps(func)
@@ -57,6 +68,9 @@ def command_logger(func):
         ctx = next((arg for arg in args if hasattr(arg, 'command')), None)
         if ctx is None:
             return await func(*args, **kwargs)
+
+        server_id = ctx.guild.id
+        logger = get_server_logger(server_id)
 
         command_name = ctx.command.name
         
@@ -84,13 +98,13 @@ def command_logger(func):
                 else:
                     response_content = "No response sent"
 
-                log_command(ctx, command_name, params, f"Success: {response_content}")
+                logger.log_command(ctx, command_name, params, f"Success: {response_content}")
             except Exception as e:
-                log_command(ctx, command_name, params, f"Success: Unable to retrieve response content. Error: {str(e)}")
+                logger.log_command(ctx, command_name, params, f"Success: Unable to retrieve response content. Error: {str(e)}")
             
             return result
         except Exception as e:
-            log_command(ctx, command_name, params, f"Error: {str(e)}")
+            logger.log_command(ctx, command_name, params, f"Error: {str(e)}")
             raise
 
     return wrapper

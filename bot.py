@@ -2,9 +2,6 @@ import discord
 from dotenv import load_dotenv
 import os
 
-from core.database import init_database
-from core.config import create_config
-
 load_dotenv()
 
 intents = discord.Intents.default()
@@ -30,10 +27,6 @@ bot.load_extension('cogs.logCommand')
 bot.load_extension('cogs.allowDownloadCommand')
 bot.load_extension('cogs.configCommand')
 bot.load_extension('cogs.helpCommand')
-bot.load_extension('cogs.creditCommand')
-
-# Initialize the bot
-init_database()
-create_config()
-
+# bot.load_extension('cogs.creditCommand') -> TODO make nicer
+ 
 bot.run(os.getenv('BOT_TOKEN'))

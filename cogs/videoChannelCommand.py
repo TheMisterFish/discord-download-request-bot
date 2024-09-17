@@ -20,7 +20,8 @@ class VideoChannelCommand(commands.Cog):
         action: Option(str, "Choose an action", choices=["add", "remove", "scan", "list"]),
         channel: Option(discord.TextChannel, "Select a channel", required=False) = None
     ):
-        config = load_config()
+        server_id = ctx.guild.id
+        config = load_config(server_id)
 
         if 'video_channels' not in config:
             config['video_channels'] = {}
@@ -29,7 +30,7 @@ class VideoChannelCommand(commands.Cog):
             if channel:
                 if str(channel.id) not in config['video_channels']:
                     config['video_channels'][str(channel.id)] = channel.name
-                    save_config(config)
+                    save_config(server_id, config)
                     await ctx.respond(f"✅ Added **{channel.name}** to video channels", ephemeral=True)
                 else:
                     await ctx.respond(f"**{channel.name}** is already a video channel", ephemeral=True)
@@ -40,7 +41,7 @@ class VideoChannelCommand(commands.Cog):
             if channel:
                 if str(channel.id) in config['video_channels']:
                     del config['video_channels'][str(channel.id)]
-                    save_config(config)
+                    save_config(server_id, config)
                     await ctx.respond(f"✅ Removed **{channel.name}** from video channels", ephemeral=True)
                 else:
                     await ctx.respond(f"**{channel.name}** is not a video channel", ephemeral=True)

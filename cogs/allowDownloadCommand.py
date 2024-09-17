@@ -20,7 +20,8 @@ class AllowDownloadCommand(commands.Cog):
         action: Option(str, "Choose an action", choices=["add", "remove", "list"]),
         channel: Option(discord.TextChannel, "Select a channel", required=False) = None
     ):
-        config = load_config()
+        server_id = ctx.guild.id
+        config = load_config(server_id)
         
         if 'allowed_channels' not in config:
             config['allowed_channels'] = {}
@@ -29,7 +30,7 @@ class AllowDownloadCommand(commands.Cog):
             if channel:
                 if str(channel.id) not in config['allowed_channels']:
                     config['allowed_channels'][str(channel.id)] = channel.name
-                    save_config(config)
+                    save_config(server_id, config)
                     await ctx.respond(f"✅ Added **{channel.name}** to allowed channels to download from", ephemeral=True)
                 else:
                     await ctx.respond(f"**{channel.name}** is already an allowed channel to download from", ephemeral=True)
@@ -40,7 +41,7 @@ class AllowDownloadCommand(commands.Cog):
             if channel:
                 if str(channel.id) in config['allowed_channels']:
                     del config['allowed_channels'][str(channel.id)]
-                    save_config(config)
+                    save_config(server_id, config)
                     await ctx.respond(f"✅ Removed **{channel.name}** from allowed channels to download from", ephemeral=True)
                 else:
                     await ctx.respond(f"**{channel.name}** is not an allowed channel to download from", ephemeral=True)

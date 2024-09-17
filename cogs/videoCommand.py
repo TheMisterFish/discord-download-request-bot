@@ -1,20 +1,19 @@
 import discord
 from discord.ext import commands
 from discord.commands import Option
-from fuzzywuzzy import fuzz
 
 from core.guards import is_not_ignored, in_allowed_channel
-from core.datamanager import datamanager
+from core.database import get_server_database
 from core.logger import command_logger
-from core.config import load_config
 
 class VideoCommand(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.config = load_config()
 
     async def video_title_autocomplete(self, ctx: discord.AutocompleteContext):
-        return [name for name in datamanager.get_video_names() if ctx.value.lower() in name.lower()]
+        server_id = ctx.interaction.guild_id
+        db = get_server_database(server_id)
+        return db.get_video_names(100, ctx.value, 0)
 
     @commands.slash_command(name="video", description="Search for a video by title")
     @is_not_ignored()
@@ -25,21 +24,10 @@ class VideoCommand(commands.Cog):
         ctx,
         title: Option(str, "Enter the video title", autocomplete=video_title_autocomplete, required=True)
     ):
-        def get_similarity(video_title, query_words):
-            name = video_title.upper()
-            
-            if all(word.upper() in name for word in query_words):
-                return 100
-            
-            return fuzz.partial_ratio(query_words.upper(), name)
+        server_id = ctx.guild.id
+        db = get_server_database(server_id)
 
-        matching_videos = [
-            video for video in datamanager.get_videos()
-            if get_similarity(video['name'], title) >= 90
-        ]
-
-
-        matching_videos.sort(key=lambda x: get_similarity(x['name'], title), reverse=True)
+        matching_videos = db.get_matching_videos(100, title, 90)
 
         if not matching_videos:
             await ctx.respond("No videos found matching your query.", ephemeral=True)
@@ -61,7 +49,7 @@ class VideoCommand(commands.Cog):
             await ctx.respond("Too many results found. Please be more specific in your query.", ephemeral=True)
             return
     
-        for video in matching_videos:
+        for video in matching_videos[:5]:
             name = video['name']
             links = video['links']
             tag = video.get('tag', 'No tag')
@@ -75,8 +63,8 @@ class VideoCommand(commands.Cog):
         await ctx.respond(embed=embed)
 
     @commands.Cog.listener()
-    async def on_config_update(self):
-        self.config = load_config()
+    async def on_config_update(self, server_id):
+        pass
 
 def setup(bot):
     bot.add_cog(VideoCommand(bot))

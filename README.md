@@ -2,24 +2,27 @@
 
 ## Description
 
-This Discord bot manages and tracks links posted in specific channels. It allows users to search for downloads by number, ignore specific users, and manage link channels.
+This Discord bot manages and tracks links posted in specific channels. It allows users to search for downloads by name or ID, manage ignored users, configure link channels, and view logs. The bot is designed to work with multiple servers, maintaining separate configurations and logs for each.
 
-It checks for posts with the following:
-- A DN number (`'DN : (.+)'`)
-- A Link (`'Link : (https?://\S+)'`)
 ## Features
 
-- Track links posted in designated channels
-- Search for downloads by number
+- Track links posted in designated download and video channels
+- Search for downloads by name or ID
 - Ignore specific users
-- Manage link channels (add, remove, scan)
+- Manage link channels (add, remove, scan, list)
+- View and download server-specific logs
 - Automatic scanning of messages in link channels
+- Server-specific configurations and databases
+- Cooldown management for commands
 
 ## Requirements
 
 - Python 3.8+
 - py-cord
 - python-dotenv
+- fuzzywuzzy
+- python-Levenshtein
+- pandas
 
 ## Installation
 
@@ -46,7 +49,7 @@ It checks for posts with the following:
 
 ## Configuration
 
-The bot uses a `config.json` file to store settings. If it doesn't exist, it will be created automatically with default values.
+The bot uses server-specific configuration files stored in `data/<server_id>/config.json`. These are created automatically with default values when the bot joins a new server.
 
 ## Usage
 
@@ -57,15 +60,29 @@ To start the bot, run:
 
 ## Commands
 
-- `/download <number>`: Search for a download by number
-- `/ignore <user>`: Ignore a specific user (Admin only)
-- `/linkchannel <action> [channel]`: Manage link channels (Admin only)
-  - Actions: `add`, `remove`, `scan`
-  (When `scan` is used without a channel, it will scan all channels which are set in the config.json)
+### User Commands
+- `/download [name] [id]`: Search for a farm by name or ID. Use either name or ID.
+- `/dn <input>`: Shortcut for /download. Enter farm name or ID.
+- `/help`: Display available commands and their descriptions.
+
+### Moderator Commands
+- `/log [action] [limit] [page]`: Download log file or view recent logs.
+- `/linkchannel [action] [channel]`: Manage link channels (add, remove, scan, list).
+- `/ignore [action] [user]`: Ignore, unignore, or list ignored users.
+
+### Admin Commands
+- `/config cooldown [limit] [timeout]`: Configure cooldown settings for /download and /dn commands.
+- `/config admin_download [allow]`: Configure admin download permissions.
 
 ## Database
 
-The bot uses a CSV file (`database.csv`) to store download information.
+The bot uses CSV files to store download and video information for each server:
+- `data/<server_id>/download_database.csv`
+- `data/<server_id>/video_database.csv`
+
+## Logging
+
+The bot maintains separate log files for each server at `data/<server_id>/bot_commands.log`.
 
 ## Contributing
 

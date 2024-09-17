@@ -21,7 +21,8 @@ class DownloadChannelCommand(commands.Cog):
         action: Option(str, "Choose an action", choices=["add", "remove", "scan", "list"]),
         channel: Option(discord.TextChannel, "Select a channel", required=False) = None
     ):
-        config = load_config()
+        server_id = ctx.guild.id
+        config = load_config(server_id)
 
         if 'download_channels' not in config:
             config['download_channels'] = {}
@@ -30,7 +31,7 @@ class DownloadChannelCommand(commands.Cog):
             if channel:
                 if str(channel.id) not in config['download_channels']:
                     config['download_channels'][str(channel.id)] = channel.name
-                    save_config(config)
+                    save_config(server_id, config)
                     await ctx.respond(f"✅ Added **{channel.name}** to download posts channels", ephemeral=True)
                 else:
                     await ctx.respond(f"**{channel.name}** is already a download posts channel", ephemeral=True)
@@ -41,7 +42,7 @@ class DownloadChannelCommand(commands.Cog):
             if channel:
                 if str(channel.id) in config['download_channels']:
                     del config['download_channels'][str(channel.id)]
-                    save_config(config)
+                    save_config(server_id, config)
                     await ctx.respond(f"✅ Removed **{channel.name}** from download posts channels", ephemeral=True)
                 else:
                     await ctx.respond(f"**{channel.name}** is not a download posts channel", ephemeral=True)
