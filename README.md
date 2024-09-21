@@ -60,6 +60,28 @@ To start the bot, run:
 
 `python bot.py`
 
+### Running the Bot with Auto-Restart
+
+We provide a `run_bot.sh` script that allows you to run the bot with an auto-restart feature. This script creates a virtual environment, installs the required packages, and runs the bot in a detached screen session.
+
+To use the `run_bot.sh` script:
+
+1. Make sure you have `screen` installed on your system. If not, you can install it using your package manager (e.g., `sudo apt-get install screen` on Ubuntu).
+
+2. Give execute permission to the script: `chmod +x run_bot.sh`
+
+3. Run the script: `./run_bot.sh`
+
+This will start the bot in a detached screen session named 'archive_bot'. The bot will automatically restart if it crashes.
+
+To interact with the running bot:
+
+- Attach to the screen session: `screen -r archive_bot`
+- Detach from the session (without stopping the bot):
+Press `Ctrl+A`, then `D`
+- If the bot crashes, you have 10 seconds to press Ctrl+C to stop it completely. Otherwise, it will automatically restart.
+
+This method ensures that your bot keeps running even if you close your terminal session, and it will automatically recover from crashes.
 
 ## Commands
 
