@@ -7,7 +7,7 @@ command_exists() {
 
 # Install the latest Python version available in Debian
 install_latest_python() {
-    echo "Installing the latest Python version available in Debian..."
+    echo "Updating Python and installing necessary packages..."
     sudo apt-get update
     sudo apt-get install -y python3 python3-venv python3-pip
 }
@@ -15,11 +15,25 @@ install_latest_python() {
 # Check if Python 3 is installed
 if ! command_exists python3; then
     install_latest_python
+else
+    # If Python is installed but outdated, update it
+    if python3 -c "import sys; exit(1) if sys.version_info < (3,6) else exit(0)"; then
+        echo "Python version is 3.6 or higher."
+    else
+        echo "Python version is below 3.6. Updating..."
+        install_latest_python
+    fi
 fi
 
 # Get the Python version
 PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
 echo "Using Python version: $PYTHON_VERSION"
+
+# Install python3-venv if not already installed
+if ! dpkg -s python3-venv >/dev/null 2>&1; then
+    echo "Installing python3-venv..."
+    sudo apt-get install -y python3-venv
+fi
 
 # Create a virtual environment with the latest Python version
 if [ ! -d "archive_bot_env" ]; then
@@ -31,7 +45,7 @@ fi
 source archive_bot_env/bin/activate
 
 # Upgrade pip
-pip install --upgrade pip
+python3 -m pip install --upgrade pip
 
 # Check if screen is installed
 if ! command_exists screen; then
