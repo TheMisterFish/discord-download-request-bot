@@ -27,33 +27,32 @@ else
     echo "requirements.txt not found. Skipping package installation."
 fi
 
-# Function to run the bot
-run_bot() {
-    while true; do
-        screen -S archive_bot -dm python bot.py
-        echo "Bot started. Waiting for potential crash..."
-        
-        # Wait for the screen session to end (bot crash)
-        while screen -list | grep -q "archive_bot"; do
-            sleep 1
-        done
-        
-        echo "Bot crashed. Restarting in 10 seconds. Press Enter to stop."
-        
-        # Wait 10 seconds, allow interruption
-        if read -t 10 -n 1; then
-            echo "Interrupted by user. Exiting."
+# Create a script to run the bot with auto-restart
+cat << 'EOF' > run_bot_with_restart.sh
+#!/bin/bash
+source "$VENV_NAME/bin/activate"
+
+trap 'exit 0' SIGINT
+
+while true; do
+    python bot.py
+    echo "Bot crashed. Waiting 10 seconds before restarting. Press Ctrl+C to exit."
+    for i in {10..1}; do
+        echo -ne "\rRestarting in $i seconds... "
+        read -t 1 -n 1 input
+        if [ $? -eq 0 ]; then
+            echo -e "\nUser input detected. Exiting."
             exit 0
         fi
-        echo "Restarting bot..."
     done
-}
+    echo -e "\nRestarting bot..."
+done
+EOF
 
-# Start the bot in the background
-run_bot &
+chmod +x run_bot_with_restart.sh
 
-# Save the PID of the background process
-BOT_PID=$!
+# Start the bot in a detached screen session
+screen -dmS archive_bot ./run_bot_with_restart.sh
 
 # Display the information message
 echo "##############################################################################################"
@@ -61,12 +60,9 @@ echo ""
 echo "Archive Bot is now running in a detached screen session named 'archive_bot' with auto-restart."
 echo "To attach to the session, use: screen -r archive_bot"
 echo "To detach from the session once attached, press Ctrl+A, then D"
-echo "When the bot crashes, you have 10 seconds to press Enter to stop it completely."
+echo "When the bot crashes, you have 10 seconds to press Ctrl+C to stop it completely."
 echo ""
 echo "##############################################################################################"
-
-# Wait for the bot process to finish
-wait $BOT_PID
 
 # Deactivate virtual environment
 deactivate
