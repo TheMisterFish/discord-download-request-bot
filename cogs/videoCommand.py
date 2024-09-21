@@ -85,9 +85,18 @@ class VideoCommand(commands.Cog):
         await ctx.respond(embed=embed)
 
     def create_linked_name(self, name, links):
-        linked_name = name
-        for link_type, url in links.items():
-            linked_name += f" ([{link_type}]({url}))"
+        if not links:
+            return name
+
+        linked_name = name + " ("
+        
+        urls = list(links.values())
+        if len(urls) == 1:
+            linked_name += urls[0]
+        else:
+            linked_name += ",".join(urls)
+        
+        linked_name += ")"
         return linked_name
     
     @video.error
