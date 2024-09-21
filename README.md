@@ -1,4 +1,5 @@
 # Discord Download Request Bot
+![ArchiverBotBanner_a4](https://github.com/user-attachments/assets/c5f70ade-8acb-41c6-8268-830b096dc8d2)
 
 ## Description
 
@@ -100,6 +101,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 This project is released under The Unlicense. This means it's free and unencumbered software released into the public domain. For more information, please refer to <http://unlicense.org/>
 
 ## Disclaimer
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/188306c5-6079-4f3e-80fd-e2f9c7449cd5" alt="Designer (3)" width="150px">
+</p>
 
 This bot is a hobby project and is provided "as is", without warranty of any kind, express or implied. The authors or copyright holders shall not be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.
 
