@@ -1,5 +1,5 @@
 python-dotenv
-py-cord
+py-cord==2.6.0
 fuzzywuzzy 
 python-Levenshtein
 pandas
