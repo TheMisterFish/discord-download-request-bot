@@ -47,6 +47,7 @@ class ServerDatabase:
             links[channel] = link
             self.download_db.loc[self.download_db['id'] == id, 'name'] = name
             self.download_db.loc[self.download_db['id'] == id, 'links'] = [links]
+            self.serverLogger.logger.info(f"Server {self.server_id}: Updated existing entry to link database: Name={name}, Channel={channel}")
         else:
             links = {channel: link}
             new_entry = pd.DataFrame({'id': [id], 'name': [name], 'links': [links]})
@@ -63,6 +64,7 @@ class ServerDatabase:
             links[channel] = link
             self.video_db.loc[self.video_db['name'] == name, 'tag'] = tag
             self.video_db.loc[self.video_db['name'] == name, 'links'] = [links]
+            self.serverLogger.logger.info(f"Server {self.server_id}: Updated existing entry to video database: Name={name}, Channel={channel}")
         else:
             links = {channel: link}
             new_entry = pd.DataFrame({'name': [name], 'tag': [tag], 'links': [links]})
