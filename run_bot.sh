@@ -5,31 +5,26 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Install Python 3.8 on Debian
-install_python38() {
-    echo "Installing Python 3.8 on Debian..."
+# Install the latest Python version available in Debian
+install_latest_python() {
+    echo "Installing the latest Python version available in Debian..."
     sudo apt-get update
-    sudo apt-get install -y wget build-essential libreadline-gplv2-dev libncursesw5-dev \
-         libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
-    wget https://www.python.org/ftp/python/3.8.12/Python-3.8.12.tgz
-    tar xzf Python-3.8.12.tgz
-    cd Python-3.8.12
-    ./configure --enable-optimizations
-    make -j $(nproc)
-    sudo make altinstall
-    cd ..
-    rm -rf Python-3.8.12 Python-3.8.12.tgz
+    sudo apt-get install -y python3 python3-venv python3-pip
 }
 
-# Check if Python 3.8 is installed
-if ! command_exists python3.8; then
-    install_python38
+# Check if Python 3 is installed
+if ! command_exists python3; then
+    install_latest_python
 fi
 
-# Create a virtual environment with Python 3.8
+# Get the Python version
+PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+echo "Using Python version: $PYTHON_VERSION"
+
+# Create a virtual environment with the latest Python version
 if [ ! -d "archive_bot_env" ]; then
     echo "Creating virtual environment for Archive Bot..."
-    python3.8 -m venv archive_bot_env
+    python3 -m venv archive_bot_env
 fi
 
 # Activate the virtual environment
@@ -54,7 +49,7 @@ screen -dmS archive_bot_session bash -c '
     while true
     do
         echo "Starting bot.py..."
-        python3.8 bot.py
+        python3 bot.py
         echo "Archive Bot crashed or stopped. Restarting in 10 seconds..."
         echo "Press Enter within 10 seconds to stop the Archive Bot and exit..."
         if read -t 10 -r; then
