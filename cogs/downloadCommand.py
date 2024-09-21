@@ -44,7 +44,7 @@ class DownloadCommand(commands.Cog):
     async def download_id_name_autocomplete(self, ctx: discord.AutocompleteContext):
         server_id = ctx.interaction.guild_id
         db = get_server_database(server_id)
-        matches = db.get_download_id_names(25, ctx.value, 50)  # Adjust count and percentage as needed
+        matches = db.get_download_id_names(25, ctx.value, 50)
         return [f"{id} - {name}" for id, name in matches]
 
     @commands.slash_command(name="download", description="Search for a download by name or ID")
@@ -70,26 +70,63 @@ class DownloadCommand(commands.Cog):
         input: Option(str, "Enter the download name or ID", autocomplete=download_id_name_autocomplete, required=True)
     ):
         await self.check_cooldown(ctx)
-        await self.process_download_request(ctx, input, input)
+        await self.process_download_request(ctx, input, input, True)
 
-    async def process_download_request(self, ctx, name, id):
+    async def process_download_request(self, ctx, name, id, both=False):
         server_id = ctx.guild.id
         db = get_server_database(server_id)
+
+        if both:
+            id_name, id_links = db.get_download_entry(id.upper())
+            if id_name:
+                await self.send_single_result_embed(ctx, id_name, id, id_links)
+                return
+            
+            matching_downloads = db.get_matching_downloads(100, name, 70)
+            if matching_downloads:
+                await self.send_multiple_results_embed(ctx, matching_downloads)
+                return
+            
+            await ctx.respond("No downloads found matching the provided ID or name.", ephemeral=True)
+            return
 
         if id:
             name, links = db.get_download_entry(id.upper())
             if not name:
                 await ctx.respond(f"No download found with ID: {id}", ephemeral=True)
                 return
+            await self.send_single_result_embed(ctx, name, id, links)
         elif name:
             matching_downloads = db.get_matching_downloads(100, name, 70)
             if not matching_downloads:
                 await ctx.respond(f"No downloads found matching '{name}'.", ephemeral=True)
                 return
+            await self.send_multiple_results_embed(ctx, matching_downloads)
         else:
             await ctx.respond("Please provide either a download name or ID.", ephemeral=True)
+
+    async def send_single_result_embed(self, ctx, name, id, links):
+        embed = self.create_base_embed(ctx)
+        linked_name = f"[{name}]({list(links.values())[0]})"
+        embed.add_field(name=linked_name, value=f"ID: {id}", inline=False)
+        await ctx.respond(embed=embed)
+
+    async def send_multiple_results_embed(self, ctx, matching_downloads):
+        if len(matching_downloads) > 3:
+            await ctx.respond("Too many results found. Please be more specific in your query.", ephemeral=True)
             return
 
+        embed = self.create_base_embed(ctx)
+        for download in matching_downloads[:3]:
+            name = download['name']
+            links = download['links']
+            first_link = next(iter(links.values()))
+            linked_name = f"[{name}]({first_link})"
+            embed.add_field(name=linked_name, value=f"ID: {download['id']}", inline=False)
+        
+        await ctx.respond(embed=embed)
+
+    def create_base_embed(self, ctx):
         embed = discord.Embed(
             title="Download Search Results",
             color=discord.Color.green()
@@ -102,22 +139,7 @@ class DownloadCommand(commands.Cog):
         user_avatar_url = ctx.author.display_avatar.url if ctx.author.display_avatar else None
         embed.set_footer(text=footer_text, icon_url=user_avatar_url)
 
-        if id:
-            linked_name = f"[{name}]({list(links.values())[0]})"
-            embed.add_field(name=linked_name, value=f"ID: {id}", inline=False)
-        else:
-            if len(matching_downloads) > 3:
-                await ctx.respond("Too many results found. Please be more specific in your query.", ephemeral=True)
-                return
-
-            for download in matching_downloads[:3]:
-                name = download['name']
-                links = download['links']
-                first_link = next(iter(links.values()))
-                linked_name = f"[{name}]({first_link})"
-                embed.add_field(name=linked_name, value=f"ID: {download['id']}", inline=False)
-
-        await ctx.respond(embed=embed)
+        return embed
 
     @download.error
     @dn.error
