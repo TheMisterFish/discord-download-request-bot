@@ -5,14 +5,20 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Install Python 3.8
+# Install Python 3.8 on Debian
 install_python38() {
-    echo "Installing Python 3.8..."
+    echo "Installing Python 3.8 on Debian..."
     sudo apt-get update
-    sudo apt-get install -y software-properties-common
-    sudo add-apt-repository -y ppa:deadsnakes/ppa
-    sudo apt-get update
-    sudo apt-get install -y python3.8 python3.8-venv python3.8-dev
+    sudo apt-get install -y wget build-essential libreadline-gplv2-dev libncursesw5-dev \
+         libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
+    wget https://www.python.org/ftp/python/3.8.12/Python-3.8.12.tgz
+    tar xzf Python-3.8.12.tgz
+    cd Python-3.8.12
+    ./configure --enable-optimizations
+    make -j $(nproc)
+    sudo make altinstall
+    cd ..
+    rm -rf Python-3.8.12 Python-3.8.12.tgz
 }
 
 # Check if Python 3.8 is installed
@@ -34,9 +40,8 @@ pip install --upgrade pip
 
 # Check if screen is installed
 if ! command_exists screen; then
-    echo "Screen is not installed. Please install it manually:"
-    echo "sudo apt-get update && sudo apt-get install screen -y"
-    exit 1
+    echo "Screen is not installed. Installing screen..."
+    sudo apt-get update && sudo apt-get install screen -y
 fi
 
 # Install requirements
@@ -49,7 +54,7 @@ screen -dmS archive_bot_session bash -c '
     while true
     do
         echo "Starting bot.py..."
-        python bot.py
+        python3.8 bot.py
         echo "Archive Bot crashed or stopped. Restarting in 10 seconds..."
         echo "Press Enter within 10 seconds to stop the Archive Bot and exit..."
         if read -t 10 -r; then
