@@ -96,6 +96,10 @@ The bot maintains separate log files for each server at `data/<server_id>/bot_co
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## Terms of Service
+
+For information about the usage terms and conditions of this bot, please refer to our [Terms of Service](TERMS_OF_SERVICE.md).
+
 ## License
 
 This project is released under The Unlicense. This means it's free and unencumbered software released into the public domain. For more information, please refer to <http://unlicense.org/>
