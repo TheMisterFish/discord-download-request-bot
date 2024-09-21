@@ -27,4 +27,4 @@ By using this Discord bot, you agree to the following terms:
 
 By using this bot, you acknowledge that you have read and understood these Terms of Service and agree to be bound by them.
 
-Last updated:
+Last updated: 9/21/2024
