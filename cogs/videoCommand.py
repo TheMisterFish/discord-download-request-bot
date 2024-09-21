@@ -78,14 +78,18 @@ class VideoCommand(commands.Cog):
             links = video['links']
             tag = video.get('tag', 'No tag')
             
-            first_link = next(iter(links.values()))
-            
-            linked_name = f"[{name}]({first_link})"
+            linked_name = self.create_linked_name(name, links)
             
             embed.add_field(name=linked_name, value=f"*{tag}*", inline=False)
 
         await ctx.respond(embed=embed)
 
+    def create_linked_name(self, name, links):
+        linked_name = name
+        for link_type, url in links.items():
+            linked_name += f" ([{link_type}]({url}))"
+        return linked_name
+    
     @video.error
     async def video_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):

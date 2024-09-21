@@ -107,7 +107,7 @@ class DownloadCommand(commands.Cog):
 
     async def send_single_result_embed(self, ctx, name, id, links):
         embed = self.create_base_embed(ctx)
-        linked_name = f"[{name}]({list(links.values())[0]})"
+        linked_name = self.create_linked_name(name, links)
         embed.add_field(name=linked_name, value=f"ID: {id}", inline=False)
         await ctx.respond(embed=embed)
 
@@ -120,8 +120,7 @@ class DownloadCommand(commands.Cog):
         for download in matching_downloads[:3]:
             name = download['name']
             links = download['links']
-            first_link = next(iter(links.values()))
-            linked_name = f"[{name}]({first_link})"
+            linked_name = self.create_linked_name(name, links)
             embed.add_field(name=linked_name, value=f"ID: {download['id']}", inline=False)
         
         await ctx.respond(embed=embed)
@@ -140,6 +139,12 @@ class DownloadCommand(commands.Cog):
         embed.set_footer(text=footer_text, icon_url=user_avatar_url)
 
         return embed
+    
+    def create_linked_name(self, name, links):
+        linked_name = name
+        for link_type, url in links.items():
+            linked_name += f" ([{link_type}]({url}))"
+        return linked_name
 
     @download.error
     @dn.error
