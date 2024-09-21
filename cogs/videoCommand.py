@@ -1,14 +1,36 @@
 import discord
+
 from discord.ext import commands
 from discord.commands import Option
+from discord.ext.commands import CooldownMapping, BucketType
 
 from core.guards import is_not_ignored, in_allowed_channel
 from core.database import get_server_database
 from core.logger import command_logger
+from core.config import load_config
 
 class VideoCommand(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.cooldown_mappings = {}
+
+    def get_cooldown_mapping(self, server_id):
+        if server_id not in self.cooldown_mappings:
+            config = load_config(server_id)
+            self.cooldown_mappings[server_id] = CooldownMapping.from_cooldown(
+                config.get('cooldown', {}).get('limit', 1),
+                config.get('cooldown', {}).get('timeout', 3),
+                BucketType.user
+            )
+        return self.cooldown_mappings[server_id]
+
+    async def check_cooldown(self, ctx):
+        server_id = ctx.guild.id
+        bucket = self.get_cooldown_mapping(server_id).get_bucket(ctx)
+        retry_after = bucket.update_rate_limit()
+        if retry_after:
+            raise commands.CommandOnCooldown(bucket, retry_after, BucketType.user)
+        return True
 
     async def video_title_autocomplete(self, ctx: discord.AutocompleteContext):
         server_id = ctx.interaction.guild_id
@@ -24,6 +46,8 @@ class VideoCommand(commands.Cog):
         ctx,
         title: Option(str, "Enter the video title", autocomplete=video_title_autocomplete, required=True)
     ):
+        await self.check_cooldown(ctx)
+        
         server_id = ctx.guild.id
         db = get_server_database(server_id)
 
@@ -62,9 +86,16 @@ class VideoCommand(commands.Cog):
 
         await ctx.respond(embed=embed)
 
+    @video.error
+    async def video_error(self, ctx, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.respond(f"This command is on cooldown. Please try again in {error.retry_after:.2f} seconds.", ephemeral=True)
+            return
+
     @commands.Cog.listener()
     async def on_config_update(self, server_id):
-        pass
+        if server_id in self.cooldown_mappings:
+            del self.cooldown_mappings[server_id]
 
 def setup(bot):
     bot.add_cog(VideoCommand(bot))

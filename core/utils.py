@@ -4,9 +4,14 @@ import discord
 
 from core.database import get_server_database
 from core.logger import get_server_logger
+from core.config import load_config
 
 async def process_download_message(message):
-    match = re.search(r'DN : (.+)', message.content)
+    server_id = message.guild.id
+    config = load_config(server_id)
+    search_regex = config.get('search_regex', 'DN : (.+)')
+
+    match = re.search(search_regex, message.content)
     if match:
         id = match.group(1)
         download_match = re.search(r'Link : (https?://\S+)', message.content)

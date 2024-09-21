@@ -10,14 +10,15 @@ if not os.path.exists(DATA_DIR):
 def default_config():
     return {
         'cooldown': {
-            'limit': 1,
-            'timeout': 3
+            'limit': 2,
+            'timeout': 10
         },
         'admin_always_download': True,
         'download_channels': {},
         'video_channels': {},
         'allowed_channels': {},
         'ignored_users': {},
+        'search_regex': 'DN : (.+)'
     }
 
 def get_server_config_file(server_id):

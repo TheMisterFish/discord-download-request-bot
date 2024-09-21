@@ -131,14 +131,12 @@ class ServerDatabase:
 
         def match_score(row):
             name = row['name'].lower()
-            id = str(row['id']).lower()
             
-            if query in name or query in id:
+            if query in name:
                 return 100
             
             name_score = fuzz.partial_ratio(query, name)
-            id_score = fuzz.partial_ratio(query, id)
-            return max(name_score, id_score)
+            return name_score
 
         matched = self.video_db.apply(match_score, axis=1)
         matched = self.video_db[matched >= percentage].sort_values(by='name', key=lambda x: matched[x.index], ascending=False)
