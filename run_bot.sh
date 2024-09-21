@@ -10,15 +10,19 @@ else
     exit 1
 fi
 
+# Get the full path of the current directory
+CURRENT_DIR=$(pwd)
+
 # Create virtual environment if it doesn't exist
 VENV_NAME="archiver_bot"
-if [ ! -d "$VENV_NAME" ]; then
+VENV_PATH="$CURRENT_DIR/$VENV_NAME"
+if [ ! -d "$VENV_PATH" ]; then
     echo "Creating virtual environment: $VENV_NAME"
-    $PYTHON_CMD -m venv $VENV_NAME
+    $PYTHON_CMD -m venv $VENV_PATH
 fi
 
 # Activate virtual environment
-source "$VENV_NAME/bin/activate"
+source "$VENV_PATH/bin/activate"
 
 # Install requirements if requirements.txt exists
 if [ -f "requirements.txt" ]; then
@@ -28,9 +32,9 @@ else
 fi
 
 # Create a wrapper script to run the bot with auto-restart
-cat << 'EOF' > run_bot_wrapper.sh
+cat << EOF > run_bot_wrapper.sh
 #!/bin/bash
-source "$VENV_NAME/bin/activate"
+source "$VENV_PATH/bin/activate"
 
 run_bot() {
     python bot.py
@@ -40,7 +44,7 @@ while true; do
     run_bot
     echo "Bot stopped. Waiting 10 seconds before restarting. Press Ctrl+C to exit."
     for i in {10..1}; do
-        echo -ne "\rRestarting in $i seconds... "
+        echo -ne "\rRestarting in \$i seconds... "
         sleep 1
     done
     echo -e "\nRestarting bot..."
