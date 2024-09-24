@@ -1,6 +1,7 @@
 import json
 import os
 from core.logger import get_server_logger
+from discord.ext import commands
 
 DATA_DIR = 'data'
 
@@ -30,6 +31,8 @@ def get_server_config_file(server_id):
 server_configs = {}
 
 def load_config(server_id):
+    if not server_id:
+        raise commands.NoPrivateMessage("This command cannot be used in private messages.")
     if server_id in server_configs:
         return server_configs[server_id]
 
@@ -49,6 +52,9 @@ def load_config(server_id):
     return config
 
 def save_config(server_id, config, bot=None):
+    if not server_id:
+        raise commands.NoPrivateMessage("This command cannot be used in private messages.")
+    
     server_configs[server_id] = config
     config_file = get_server_config_file(server_id)
     with open(config_file, 'w') as f:

@@ -47,7 +47,7 @@ class HelpCommand(commands.Cog):
             embed.add_field(name="/config search_regex [regex]", value="Configure the search regex for download messages.", inline=False)
             embed.add_field(name="/config reset_regex", value="Reset the search regex to default (DN : (.+)).", inline=False)
 
-        embed.set_footer(text="Made by **Mister Fish** with special thanks to **Orange dot**.")
+        embed.set_footer(text="Made by Mister Fish with special thanks to Orange dot.")
 
         await ctx.respond(embed=embed, ephemeral=True)
 

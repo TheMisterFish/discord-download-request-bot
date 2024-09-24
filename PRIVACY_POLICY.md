@@ -1,6 +1,6 @@
 # Privacy Policy
 
-This privacy policy explains how our Discord bot collects, uses, and protects information.
+This privacy policy explains how our Discord bot collects, and uses information.
 
 ## Information Collection and Use
 
@@ -15,7 +15,7 @@ This information is stored in one (ore two) CSV database(s) for the purpose of f
 
 ## Data Storage and Security
 
-The collected data is stored in a secure CSV database. We implement appropriate data collection, storage, and processing practices and security measures to protect against unauthorized access, alteration, disclosure, or destruction of your information.
+The collected data is stored in a CSV database. Since the data stored doesn't contain any private information the data is protected by the fact it runs behind a secure VPS which cannot be accessed by non admins.
 
 ## Data Sharing and Disclosure
 
@@ -31,6 +31,6 @@ By using this bot, you signify your acceptance of this policy. If you do not agr
 
 ## Contact Us
 
-If you have any questions about this Privacy Policy, please contact us through (our GitHub page)[https://github.com/TheMisterFish/discord-download-request-bot].
+If you have any questions about this Privacy Policy, please contact us through [our GitHub page](https://github.com/TheMisterFish/discord-download-request-bot).
 
 Last updated: 9/21/2024

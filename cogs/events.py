@@ -43,6 +43,10 @@ class Events(commands.Cog):
     async def on_message(self, message):
         if message.author == self.bot.user:
             return
+        
+        if message.guild is None:  # This is a DM
+            await message.channel.send("This bot can only be used in servers, not in direct messages.")
+            return
 
         server_id = message.guild.id
         config = server_configs.get(server_id) or load_config(server_id)
@@ -74,6 +78,8 @@ class Events(commands.Cog):
 
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond(f"This command is on cooldown. Try again in {error.retry_after:.2f} seconds.", ephemeral=True)
+        if isinstance(error, commands.NoPrivateMessage):
+            await ctx.respond(f"This bot can only be used in servers, not in direct messages.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions):
             await ctx.respond("You don't have the necessary permissions to use this command.", ephemeral=True) 
         elif isinstance(error, UserIgnoredError):
