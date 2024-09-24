@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from fuzzywuzzy import fuzz
 import re
+from discord.ext import commands
 
 from core.config import DATA_DIR
 from core.logger import get_server_logger
@@ -177,6 +178,8 @@ class ServerDatabase:
 server_databases = {}
 
 def get_server_database(server_id):
+    if not server_id:
+        raise commands.NoPrivateMessage("This command cannot be used in private messages.")
     if server_id not in server_databases:
         server_databases[server_id] = ServerDatabase(server_id)
     return server_databases[server_id]
