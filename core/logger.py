@@ -4,6 +4,7 @@ import os
 import inspect
 from functools import wraps
 from logging.handlers import RotatingFileHandler
+from discord.ext import commands
 
 class ServerLogger:
     def __init__(self, server_id):
@@ -58,6 +59,8 @@ class ServerLogger:
 server_loggers = {}
 
 def get_server_logger(server_id):
+    if not ctx.guild or not ctx.guild.id:
+        raise commands.NoPrivateMessage("This command cannot be used in private messages.")
     if server_id not in server_loggers:
         server_loggers[server_id] = ServerLogger(server_id)
     return server_loggers[server_id]
