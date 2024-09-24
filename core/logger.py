@@ -59,7 +59,7 @@ class ServerLogger:
 server_loggers = {}
 
 def get_server_logger(server_id):
-    if not ctx.guild or not ctx.guild.id:
+    if not server_id:
         raise commands.NoPrivateMessage("This command cannot be used in private messages.")
     if server_id not in server_loggers:
         server_loggers[server_id] = ServerLogger(server_id)
