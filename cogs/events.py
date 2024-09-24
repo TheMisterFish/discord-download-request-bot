@@ -49,6 +49,10 @@ class Events(commands.Cog):
             return
 
         server_id = message.guild.id
+        
+        if not server_id:
+            raise commands.NoPrivateMessage("This command cannot be used in private messages.")
+        
         config = server_configs.get(server_id) or load_config(server_id)
         serverLogger = get_server_logger(server_id)
 
@@ -66,11 +70,14 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         server_id = ctx.guild.id
-        serverLogger = get_server_logger(server_id)
-        config = server_configs.get(server_id) or load_config(server_id)
+        
+        if(server_id):
+            serverLogger = get_server_logger(server_id)
+            config = server_configs.get(server_id) or load_config(server_id)
 
         if isinstance(error, Exception) and not isinstance(error, discord.DiscordException):
-            serverLogger.logger.error(f"Error in command {ctx.command}: {str(error)}")
+            if(server_id):
+                serverLogger.logger.error(f"Error in command {ctx.command}: {str(error)}")
             print(f"Error in command {ctx.command}: {str(error)}")
             
             await ctx.respond(f"An error occurred: {str(error)}", ephemeral=True)
@@ -90,7 +97,10 @@ class Events(commands.Cog):
             await ctx.respond(f"Please use the download command in the allowed text channels: {channel_links}.", ephemeral=True)
         else:
             await ctx.respond(f"An unexpected error occurred", ephemeral=True)
-            serverLogger.logger.error(f"Unexpected error in command {ctx.command}: {str(error)}")
+
+            if(server_id):
+                serverLogger.logger.error(f"Unexpected error in command {ctx.command}: {str(error)}")
+                
             print(f"Unexpected error in command {ctx.command}: {str(error)}")
 
 def setup(bot):
