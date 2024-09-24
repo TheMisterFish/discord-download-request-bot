@@ -34,6 +34,8 @@ class VideoCommand(commands.Cog):
 
     async def video_title_autocomplete(self, ctx: discord.AutocompleteContext):
         server_id = ctx.interaction.guild_id
+        if not server_id:
+            return []
         db = get_server_database(server_id)
         return db.get_video_names(100, ctx.value, 0)
 

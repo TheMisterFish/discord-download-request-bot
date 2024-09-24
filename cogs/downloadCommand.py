@@ -34,15 +34,21 @@ class DownloadCommand(commands.Cog):
     async def download_id_autocomplete(self, ctx: discord.AutocompleteContext):
         server_id = ctx.interaction.guild_id
         db = get_server_database(server_id)
+        if not server_id:
+            return []
         return db.get_matching_download_ids(100, ctx.value)
 
     async def download_name_autocomplete(self, ctx: discord.AutocompleteContext):
         server_id = ctx.interaction.guild_id
         db = get_server_database(server_id)
+        if not server_id:
+            return []
         return db.get_download_names(100, ctx.value, 0)
 
     async def download_id_name_autocomplete(self, ctx: discord.AutocompleteContext):
         server_id = ctx.interaction.guild_id
+        if not server_id:
+            return []
         db = get_server_database(server_id)
         matches = db.get_download_id_names(25, ctx.value, 50)
         return [f"{id} - {name}" for id, name in matches]
