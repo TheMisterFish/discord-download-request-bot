@@ -69,9 +69,10 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
-        server_id = ctx.guild.id
+        server_id = None
         
-        if(server_id):
+        if(ctx.guild):
+            server_id = ctx.guild.id
             serverLogger = get_server_logger(server_id)
             config = server_configs.get(server_id) or load_config(server_id)
 
@@ -100,7 +101,7 @@ class Events(commands.Cog):
 
             if(server_id):
                 serverLogger.logger.error(f"Unexpected error in command {ctx.command}: {str(error)}")
-                
+
             print(f"Unexpected error in command {ctx.command}: {str(error)}")
 
 def setup(bot):
