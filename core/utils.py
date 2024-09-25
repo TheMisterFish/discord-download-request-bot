@@ -36,15 +36,29 @@ async def process_download_message(message):
 async def process_video_message(message):
     content_to_check = message.content
     video_url = None
+    video_title = None
 
     if message.embeds:
         for embed in message.embeds:
+            print(f"Embed type: {embed.type}")
+            print(f"Embed URL: {embed.url}")
+            print(f"Embed title: {embed.title}")
+            
             if embed.type == 'video' and embed.url:
                 video_url = embed.url
-            elif embed.type == 'rich' and embed.url and 'youtube.com' in embed.url:
+                video_title = embed.title
+            elif embed.type == 'rich' and embed.url and ('youtube.com' in embed.url or 'youtu.be' in embed.url):
                 video_url = embed.url
+                video_title = embed.title
+            
             if embed.description:
                 content_to_check += "\n" + embed.description
+            if embed.fields:
+                for field in embed.fields:
+                    content_to_check += f"\n{field.name}: {field.value}"
+            
+            if video_url and video_title:
+                break
 
     if not video_url:
         youtube_link = re.search(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})', content_to_check)
@@ -53,16 +67,21 @@ async def process_video_message(message):
             video_url = f"https://www.youtube.com/watch?v={video_id}"
 
     tag_match = re.search(r'<@&(\d+)>', content_to_check)
+    tag = tag_match.group(0) if tag_match else ""
 
     if video_url:
-        name = await get_title_from_embed(message)
+        name = video_title if video_title else await get_title_from_embed(message)
         if not name:
             name = "Unknown Video Title"
-        tag = tag_match.group(0) if tag_match else ""
+
+        print(f"Video URL: {video_url}")
+        print(f"Video Title: {name}")
 
         server_id = message.guild.id
         db = get_server_database(server_id)
         db.update_video_database(name, message.channel.name, message.jump_url, tag)
+    else:
+        print(f"No video found in message: {message.jump_url}")
 
 async def get_title_from_embed(message):
     max_attempts = 10
