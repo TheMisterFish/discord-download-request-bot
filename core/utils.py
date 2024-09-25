@@ -38,22 +38,29 @@ async def process_download_message(message):
 
 async def process_video_message(message):
     content_to_check = message.content
+    video_url = None
 
-    # Check for embeds
     if message.embeds:
         for embed in message.embeds:
+            if embed.type == 'video' and embed.url:
+                video_url = embed.url
+            elif embed.type == 'rich' and embed.url and 'youtube.com' in embed.url:
+                video_url = embed.url
             if embed.description:
                 content_to_check += "\n" + embed.description
             if embed.fields:
                 for field in embed.fields:
                     content_to_check += f"\n{field.name}: {field.value}"
 
-    youtube_link = re.search(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})', content_to_check)
+    if not video_url:
+        youtube_link = re.search(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})', content_to_check)
+        if youtube_link:
+            video_id = youtube_link.group(6)
+            video_url = f"https://www.youtube.com/watch?v={video_id}"
+
     tag_match = re.search(r'<@&(\d+)>', content_to_check)
 
-    if youtube_link:
-        video_id = youtube_link.group(6)
-        video_url = f"https://www.youtube.com/watch?v={video_id}"
+    if video_url:
         name = await get_title_from_embed(message)
         if not name:
             name = "Unknown Video Title"
