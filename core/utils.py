@@ -11,10 +11,21 @@ async def process_download_message(message):
     config = load_config(server_id)
     search_regex = config.get('search_regex', 'DN : (.+)')
 
-    match = re.search(search_regex, message.content)
+    content_to_check = message.content
+
+    # Check for embeds
+    if message.embeds:
+        for embed in message.embeds:
+            if embed.description:
+                content_to_check += "\n" + embed.description
+            if embed.fields:
+                for field in embed.fields:
+                    content_to_check += f"\n{field.name}: {field.value}"
+
+    match = re.search(search_regex, content_to_check)
     if match:
         id = match.group(1)
-        download_match = re.search(r'Link : (https?://\S+)', message.content)
+        download_match = re.search(r'Link : (https?://\S+)', content_to_check)
         if download_match:
             name = await get_title_from_embed(message)
 
@@ -26,19 +37,28 @@ async def process_download_message(message):
             db.update_download_database(id, name, message.channel.name, message.jump_url)
 
 async def process_video_message(message):
-    youtube_link = re.search(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})', message.content)
-    tag_match = re.search(r'<@&(\d+)>', message.content)
-    
+    content_to_check = message.content
+
+    # Check for embeds
+    if message.embeds:
+        for embed in message.embeds:
+            if embed.description:
+                content_to_check += "\n" + embed.description
+            if embed.fields:
+                for field in embed.fields:
+                    content_to_check += f"\n{field.name}: {field.value}"
+
+    youtube_link = re.search(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})', content_to_check)
+    tag_match = re.search(r'<@&(\d+)>', content_to_check)
+
     if youtube_link:
         video_id = youtube_link.group(6)
         video_url = f"https://www.youtube.com/watch?v={video_id}"
         name = await get_title_from_embed(message)
-
         if not name:
             name = "Unknown Video Title"
-
         tag = tag_match.group(0) if tag_match else ""
-        
+
         server_id = message.guild.id
         db = get_server_database(server_id)
         db.update_video_database(name, message.channel.name, message.jump_url, tag)
