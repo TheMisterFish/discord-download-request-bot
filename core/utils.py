@@ -18,9 +18,6 @@ async def process_download_message(message):
         for embed in message.embeds:
             if embed.description:
                 content_to_check += "\n" + embed.description
-            if embed.fields:
-                for field in embed.fields:
-                    content_to_check += f"\n{field.name}: {field.value}"
 
     match = re.search(search_regex, content_to_check)
     if match:
@@ -48,9 +45,6 @@ async def process_video_message(message):
                 video_url = embed.url
             if embed.description:
                 content_to_check += "\n" + embed.description
-            if embed.fields:
-                for field in embed.fields:
-                    content_to_check += f"\n{field.name}: {field.value}"
 
     if not video_url:
         youtube_link = re.search(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})', content_to_check)
