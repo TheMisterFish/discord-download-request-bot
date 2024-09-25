@@ -40,10 +40,6 @@ async def process_video_message(message):
 
     if message.embeds:
         for embed in message.embeds:
-            print(f"Embed type: {embed.type}")
-            print(f"Embed URL: {embed.url}")
-            print(f"Embed title: {embed.title}")
-            
             if embed.type == 'video' and embed.url:
                 video_url = embed.url
                 video_title = embed.title
@@ -74,14 +70,9 @@ async def process_video_message(message):
         if not name:
             name = "Unknown Video Title"
 
-        print(f"Video URL: {video_url}")
-        print(f"Video Title: {name}")
-
         server_id = message.guild.id
         db = get_server_database(server_id)
         db.update_video_database(name, message.channel.name, message.jump_url, tag)
-    else:
-        print(f"No video found in message: {message.jump_url}")
 
 async def get_title_from_embed(message):
     max_attempts = 10
