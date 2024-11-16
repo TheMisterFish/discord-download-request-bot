@@ -1,3 +1,4 @@
+from core.utils import truncate_with_dots
 import discord
 
 from discord.ext import commands
@@ -37,7 +38,7 @@ class VideoCommand(commands.Cog):
         if not server_id:
             return []
         db = get_server_database(server_id)
-        return db.get_video_names(100, ctx.value, 0)
+        return [truncate_with_dots(id, 100) for id in db.get_video_names(100, ctx.value)]
 
     @commands.slash_command(name="video", description="Search for a video by title")
     @is_not_ignored()
@@ -76,7 +77,7 @@ class VideoCommand(commands.Cog):
             return
     
         for video in matching_videos[:5]:
-            name = video['name']
+            name = truncate_with_dots(video['name'], 256)
             links = video['links']
             tag = video.get('tag', 'No tag')
             

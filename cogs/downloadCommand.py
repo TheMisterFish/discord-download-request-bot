@@ -1,3 +1,4 @@
+from core.utils import truncate_with_dots
 import discord
 from discord.ext import commands
 from discord.commands import Option
@@ -36,14 +37,14 @@ class DownloadCommand(commands.Cog):
         db = get_server_database(server_id)
         if not server_id:
             return []
-        return db.get_matching_download_ids(100, ctx.value)
+        return [truncate_with_dots(id, 100) for id in db.get_matching_download_ids(100, ctx.value)]
 
     async def download_name_autocomplete(self, ctx: discord.AutocompleteContext):
         server_id = ctx.interaction.guild_id
         db = get_server_database(server_id)
         if not server_id:
             return []
-        return db.get_download_names(100, ctx.value, 0)
+        return [truncate_with_dots(name, 100) for name in db.get_download_names(100, ctx.value, 0)]
 
     async def download_id_name_autocomplete(self, ctx: discord.AutocompleteContext):
         server_id = ctx.interaction.guild_id
@@ -51,7 +52,7 @@ class DownloadCommand(commands.Cog):
             return []
         db = get_server_database(server_id)
         matches = db.get_download_id_names(25, ctx.value, 50)
-        return [f"{id} - {name}" for id, name in matches]
+        return [truncate_with_dots(f"{id} - {name}", 100) for id, name in matches]
 
     @commands.slash_command(name="download", description="Search for a download by name or ID")
     @is_not_ignored()
@@ -124,7 +125,7 @@ class DownloadCommand(commands.Cog):
 
         embed = self.create_base_embed(ctx)
         for download in matching_downloads[:3]:
-            name = download['name']
+            name = truncate_with_dots(download['name'], 256)
             links = download['links']
             linked_name = self.create_linked_name(name, links)
             embed.add_field(name=linked_name, value=f"ID: {download['id']}", inline=False)

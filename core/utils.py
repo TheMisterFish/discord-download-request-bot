@@ -6,6 +6,11 @@ from core.database import get_server_database
 from core.logger import get_server_logger
 from core.config import load_config
 
+def truncate_with_dots(text, max_length=256):
+    if len(text) > max_length:
+        return text[: max_length - 3] + "..."
+    return text
+    
 async def process_download_message(message):
     server_id = message.guild.id
     config = load_config(server_id)
