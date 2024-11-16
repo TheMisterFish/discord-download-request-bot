@@ -151,7 +151,7 @@ class DownloadCommand(commands.Cog):
         if not links:
             return name
 
-        linked_name = name + " ("
+        linked_name = truncate_with_dots(name) + " ("
         
         urls = list(links.values())
         if len(urls) == 1:
