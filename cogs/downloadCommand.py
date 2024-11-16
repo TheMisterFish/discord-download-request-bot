@@ -151,7 +151,7 @@ class DownloadCommand(commands.Cog):
         if not links:
             return name
 
-        linked_name = truncate_with_dots(name) + " ("
+        linked_name = " ("
         
         urls = list(links.values())
         if len(urls) == 1:
@@ -160,7 +160,7 @@ class DownloadCommand(commands.Cog):
             linked_name += ",".join(urls)
         
         linked_name += ")"
-        return linked_name
+        return truncate_with_dots(name, 255 - len(linked_name)) + linked_name
 
     @download.error
     @dn.error
