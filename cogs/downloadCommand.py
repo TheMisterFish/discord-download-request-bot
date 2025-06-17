@@ -83,13 +83,25 @@ class DownloadCommand(commands.Cog):
         server_id = ctx.guild.id
         db = get_server_database(server_id)
 
+        def extract_id_and_name(value):
+            if isinstance(value, str) and " - " in value:
+                parts = value.split(" - ", 1)
+                return parts[0].strip(), parts[1].strip()
+            return value, None
+
         if both:
-            id_name, id_links = db.get_download_entry(id.upper())
-            if id_name:
-                await self.send_single_result_embed(ctx, id_name, id, id_links)
-                return
+            # Try to extract ID and name from 'id' input (which is really the combined input in this case)
+            extracted_id, extracted_name = extract_id_and_name(id)
+
+            if extracted_id:
+                id_name, id_links = db.get_download_entry(extracted_id.upper())
+                if id_name:
+                    await self.send_single_result_embed(ctx, id_name, extracted_id, id_links)
+                    return
             
-            matching_downloads = db.get_matching_downloads(100, name, 70)
+            # If no exact ID match, fallback to search by extracted_name or original name param
+            search_name = extracted_name if extracted_name else name
+            matching_downloads = db.get_matching_downloads(100, search_name, 70)
             if matching_downloads:
                 await self.send_multiple_results_embed(ctx, matching_downloads)
                 return
@@ -97,6 +109,7 @@ class DownloadCommand(commands.Cog):
             await ctx.respond("No downloads found matching the provided ID or name.", ephemeral=True)
             return
 
+        # Normal separate id or name processing
         if id:
             name, links = db.get_download_entry(id.upper())
             if not name:

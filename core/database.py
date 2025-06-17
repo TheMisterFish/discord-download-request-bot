@@ -1,12 +1,11 @@
 import os
 import json
-import pandas as pd
-from fuzzywuzzy import fuzz
-import re
+import sqlite3
+from typing import List, Dict
 from discord.ext import commands
-
 from core.config import DATA_DIR
 from core.logger import get_server_logger
+from rapidfuzz import fuzz  # keep for scoring, but no regex caching here
 
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
@@ -16,170 +15,322 @@ class ServerDatabase:
         self.server_id = server_id
         self.server_dir = os.path.join(DATA_DIR, str(server_id))
         self.serverLogger = get_server_logger(self.server_id)
-        
+
         if not os.path.exists(self.server_dir):
             os.makedirs(self.server_dir)
 
-        self.download_db_file = os.path.join(self.server_dir, 'download_database.csv')
-        self.video_db_file = os.path.join(self.server_dir, 'video_database.csv')
+        self.db_path = os.path.join(self.server_dir, "server_data.db")
+        self.db = sqlite3.connect(self.db_path, check_same_thread=False)
+        self.db.row_factory = sqlite3.Row
 
-        self.download_db = self._load_or_create_df(self.download_db_file, ['id', 'name', 'links'])
-        self.video_db = self._load_or_create_df(self.video_db_file, ['name', 'tag', 'links'])
+        self._init_tables()
+        self._watcher_cache = self._load_watcher_cache()
 
-    def _load_or_create_df(self, file_path, columns):
-        if os.path.exists(file_path):
-            df = pd.read_csv(file_path)
-            df['links'] = df['links'].apply(json.loads)
-        else:
-            df = pd.DataFrame(columns=columns)
-        return df
+    def _init_tables(self):
+        with self.db:
+            self.db.execute('''
+                CREATE TABLE IF NOT EXISTS downloads (
+                    id TEXT PRIMARY KEY,
+                    name TEXT,
+                    links TEXT
+                )
+            ''')
+            self.db.execute('''
+                CREATE TABLE IF NOT EXISTS videos (
+                    name TEXT PRIMARY KEY,
+                    tag TEXT,
+                    links TEXT
+                )
+            ''')
+            self.db.execute('''
+                CREATE TABLE IF NOT EXISTS watchers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    question TEXT NOT NULL,
+                    reply TEXT NOT NULL
+                )
+            ''')
 
-    def _save_df(self, df, file_path):
-        df_to_save = df.copy()
-        df_to_save['links'] = df_to_save['links'].apply(json.dumps)
-        df_to_save.to_csv(file_path, index=False)
+            self.db.execute("CREATE INDEX IF NOT EXISTS idx_downloads_name ON downloads(name)")
+            self.db.execute("CREATE INDEX IF NOT EXISTS idx_downloads_id ON downloads(id)")
+            self.db.execute("CREATE INDEX IF NOT EXISTS idx_videos_name ON videos(name)")
+            self.db.execute("CREATE INDEX IF NOT EXISTS idx_videos_tag ON videos(tag)")
+            self.db.execute("CREATE INDEX IF NOT EXISTS idx_watchers_question ON watchers(question)")
 
+    # Downloads
     def update_download_database(self, id: str, name, channel, link):
         id = id.upper()
-        existing_entry = self.download_db[self.download_db['id'] == id]
+        cur = self.db.execute("SELECT links FROM downloads WHERE id = ?", (id,))
+        row = cur.fetchone()
 
-        if not existing_entry.empty:
-            links = existing_entry['links'].iloc[0]
-            links[channel] = link
-            self.download_db.loc[self.download_db['id'] == id, 'name'] = name
-            self.download_db.loc[self.download_db['id'] == id, 'links'] = [links]
-            self.serverLogger.logger.info(f"Server {self.server_id}: Updated existing entry to link database: ID={id}, Name={name}, Channel={channel}")
-        else:
-            links = {channel: link}
-            new_entry = pd.DataFrame({'id': [id], 'name': [name], 'links': [links]})
-            self.download_db = pd.concat([self.download_db, new_entry], ignore_index=True)
-            self.serverLogger.logger.info(f"Server {self.server_id}: Added new entry to link database: ID={id}, Name={name}, Channel={channel}")
-
-        self._save_df(self.download_db, self.download_db_file)
+        with self.db:
+            if row:
+                links = json.loads(row["links"])
+                links[channel] = link
+                self.db.execute(
+                    "UPDATE downloads SET name = ?, links = ? WHERE id = ?",
+                    (name, json.dumps(links), id)
+                )
+            else:
+                links = {channel: link}
+                self.db.execute(
+                    "INSERT INTO downloads (id, name, links) VALUES (?, ?, ?)",
+                    (id, name, json.dumps(links))
+                )
 
     def update_video_database(self, name, channel, link, tag):
-        existing_entry = self.video_db[self.video_db['name'] == name]
+        cur = self.db.execute("SELECT links FROM videos WHERE name = ?", (name,))
+        row = cur.fetchone()
 
-        if not existing_entry.empty:
-            links = existing_entry['links'].iloc[0]
-            links[channel] = link
-            self.video_db.loc[self.video_db['name'] == name, 'tag'] = tag
-            self.video_db.loc[self.video_db['name'] == name, 'links'] = [links]
-            self.serverLogger.logger.info(f"Server {self.server_id}: Updated existing entry to video database: Name={name}, Channel={channel}")
-        else:
-            links = {channel: link}
-            new_entry = pd.DataFrame({'name': [name], 'tag': [tag], 'links': [links]})
-            self.video_db = pd.concat([self.video_db, new_entry], ignore_index=True)
-            self.serverLogger.logger.info(f"Server {self.server_id}: Added new entry to video database: Name={name}, Channel={channel}")
-
-        self._save_df(self.video_db, self.video_db_file)
+        with self.db:
+            if row:
+                links = json.loads(row["links"])
+                links[channel] = link
+                self.db.execute(
+                    "UPDATE videos SET tag = ?, links = ? WHERE name = ?",
+                    (tag, json.dumps(links), name)
+                )
+            else:
+                links = {channel: link}
+                self.db.execute(
+                    "INSERT INTO videos (name, tag, links) VALUES (?, ?, ?)",
+                    (name, tag, json.dumps(links))
+                )
 
     def get_download_entry(self, id):
-        entry = self.download_db[self.download_db['id'] == id]
-        return (entry['name'].iloc[0], entry['links'].iloc[0]) if not entry.empty else (None, None)
+        row = self.db.execute("SELECT name, links FROM downloads WHERE id = ?", (id.upper(),)).fetchone()
+        if row:
+            return row["name"], json.loads(row["links"])
+        return None, None
 
     def get_video_entry(self, name):
-        entry = self.video_db[self.video_db['name'] == name]
-        return (entry['tag'].iloc[0], entry['links'].iloc[0]) if not entry.empty else None
+        row = self.db.execute("SELECT tag, links FROM videos WHERE name = ?", (name,)).fetchone()
+        if row:
+            return row["tag"], json.loads(row["links"])
+        return None
 
     def get_download_ids(self, count):
-        return self.download_db['id'].tail(count).tolist()
+        rows = self.db.execute("SELECT id FROM downloads ORDER BY rowid DESC LIMIT ?", (count,)).fetchall()
+        return [row["id"] for row in rows]
 
     def get_matching_download_ids(self, count, query=None):
         if query:
-            matched = self.download_db[self.download_db['id'].str.lower().str.contains(query.lower())]
-            return matched['id'].head(count).tolist()
+            like = f"%{query.lower()}%"
+            rows = self.db.execute(
+                "SELECT id FROM downloads WHERE LOWER(id) LIKE ? ORDER BY rowid DESC LIMIT ?",
+                (like, count)
+            ).fetchall()
         else:
-            return self.download_db['id'].tail(count).tolist()
+            rows = self.db.execute(
+                "SELECT id FROM downloads ORDER BY rowid DESC LIMIT ?", (count,)
+            ).fetchall()
+        return [row["id"] for row in rows]
 
     def get_download_names(self, count, query=None, percentage=0):
         if query:
-            matched = self.download_db.apply(lambda row: fuzz.ratio(query.lower(), row['name'].lower()), axis=1)
-            matched = self.download_db[matched >= percentage].sort_values(by='name', key=lambda x: matched[x.index], ascending=False)
-            return matched['name'].head(count).tolist()
+            like = f"%{query.lower()}%"
+            rows = self.db.execute(
+                "SELECT name FROM downloads WHERE LOWER(name) LIKE ? ORDER BY rowid DESC LIMIT 500",
+                (like,)
+            ).fetchall()
         else:
-            return self.download_db['name'].tail(count).tolist()
-        
+            rows = self.db.execute(
+                "SELECT name FROM downloads ORDER BY rowid DESC LIMIT ?", (count,)
+            ).fetchall()
+
+        names = [row["name"] for row in rows]
+
+        if query:
+            query = query.lower()
+            scored = [(name, fuzz.ratio(query, name.lower())) for name in names]
+            filtered = sorted(
+                [name for name, score in scored if score >= percentage],
+                key=lambda x: -fuzz.ratio(query, x.lower())
+            )
+            return filtered[:count]
+
+        return names[:count]
+
     def get_download_id_names(self, count, query=None, percentage=0):
-        if not query:
-            result = self.download_db.tail(count)
-            return list(zip(result['id'], result['name']))
+        if query:
+            like = f"%{query.lower()}%"
+            rows = self.db.execute(
+                "SELECT id, name FROM downloads WHERE LOWER(id) LIKE ? OR LOWER(name) LIKE ? ORDER BY rowid DESC LIMIT 500",
+                (like, like)
+            ).fetchall()
+        else:
+            rows = self.db.execute(
+                "SELECT id, name FROM downloads ORDER BY rowid DESC LIMIT ?", (count,)
+            ).fetchall()
 
-        query = query.lower()
+        results = [(row["id"], row["name"]) for row in rows]
 
-        def match_score(row):
-            name_score = fuzz.ratio(query, row['name'].lower())
-            id_score = 100 if query in row['id'].lower() else 0
-            return max(name_score, id_score)
+        if query:
+            query = query.lower()
+            def score(row):
+                id_score = 100 if query in row[0].lower() else 0
+                name_score = fuzz.ratio(query, row[1].lower())
+                return max(id_score, name_score)
 
-        self.download_db['score'] = self.download_db.apply(match_score, axis=1)
-        matched = self.download_db[self.download_db['score'] >= percentage].sort_values(by='score', ascending=False)
+            scored = [(id, name, score((id, name))) for id, name in results]
+            filtered = [(id, name) for id, name, s in sorted(scored, key=lambda x: -x[2]) if s >= percentage]
+            return filtered[:count]
 
-        result = matched.head(count)
-        return list(zip(result['id'], result['name']))
+        return results[:count]
 
     def get_video_names(self, count, query=None, percentage=0):
         if query:
-            matched = self.video_db.apply(lambda row: fuzz.ratio(query.lower(), row['name'].lower()), axis=1)
-            matched = self.video_db[matched >= percentage].sort_values(by='name', key=lambda x: matched[x.index], ascending=False)
-            return matched['name'].head(count).tolist()
+            like = f"%{query.lower()}%"
+            rows = self.db.execute(
+                "SELECT name FROM videos WHERE LOWER(name) LIKE ? ORDER BY rowid DESC LIMIT 500",
+                (like,)
+            ).fetchall()
         else:
-            return self.video_db['name'].tail(count).tolist()
+            rows = self.db.execute(
+                "SELECT name FROM videos ORDER BY rowid DESC LIMIT ?", (count,)
+            ).fetchall()
+
+        names = [row["name"] for row in rows]
+
+        if query:
+            query = query.lower()
+            scored = [(name, fuzz.ratio(query, name.lower())) for name in names]
+            filtered = sorted(
+                [name for name, score in scored if score >= percentage],
+                key=lambda x: -fuzz.ratio(query, x.lower())
+            )
+            return filtered[:count]
+
+        return names[:count]
 
     def get_matching_videos(self, count, query=None, percentage=50):
+        if query:
+            like = f"%{query.lower()}%"
+            rows = self.db.execute(
+                "SELECT name, tag, links FROM videos WHERE LOWER(name) LIKE ? ORDER BY rowid DESC LIMIT 500",
+                (like,)
+            ).fetchall()
+        else:
+            rows = self.db.execute(
+                "SELECT name, tag, links FROM videos ORDER BY rowid DESC LIMIT ?", (count,)
+            ).fetchall()
+
         if not query:
-            return self.video_db.tail(count).to_dict('records')
+            return [dict(row) for row in rows]
 
         query = query.lower()
-
-        def match_score(row):
-            name = row['name'].lower()
-            
+        def score(row):
+            name = row["name"].lower()
             if query in name:
                 return 100
-            
-            name_score = fuzz.partial_ratio(query, name)
-            return name_score
+            return fuzz.partial_ratio(query, name)
 
-        matched = self.video_db.apply(match_score, axis=1)
-        matched = self.video_db[matched >= percentage].sort_values(by='name', key=lambda x: matched[x.index], ascending=False)
-        return matched.head(count).to_dict('records')
+        scored = [(dict(row), score(row)) for row in rows]
+        filtered = sorted(
+            [r for r, s in scored if s >= percentage],
+            key=lambda r: -fuzz.partial_ratio(query, r["name"].lower())
+        )
+        return filtered[:count]
 
     def get_matching_downloads(self, count, query=None, percentage=50):
+        if query:
+            like = f"%{query.lower()}%"
+            rows = self.db.execute(
+                "SELECT id, name, links FROM downloads WHERE LOWER(id) LIKE ? OR LOWER(name) LIKE ? ORDER BY rowid DESC LIMIT 500",
+                (like, like)
+            ).fetchall()
+        else:
+            rows = self.db.execute(
+                "SELECT id, name, links FROM downloads ORDER BY rowid DESC LIMIT ?", (count,)
+            ).fetchall()
+
         if not query:
-            return self.download_db.tail(count).to_dict('records')
+            return [dict(id=row["id"], name=row["name"], links=json.loads(row["links"])) for row in rows]
 
-        query = query.lower().strip()
-
-        def match_score(row):
-            name = row['name'].lower()
-            id = str(row['id']).lower()
-            
-            if query == name or query == id:
-                return 200 
-            
-            if query in name or query in id:
+        query = query.lower()
+        def score(row):
+            id_val = row["id"].lower()
+            name_val = row["name"].lower()
+            if query in id_val or query in name_val:
                 return 100
-            
-            name_score = fuzz.ratio(query, name)
-            id_score = fuzz.ratio(query, id)
-            return max(name_score, id_score)
+            return max(fuzz.partial_ratio(query, id_val), fuzz.partial_ratio(query, name_val))
 
-        self.download_db['score'] = self.download_db.apply(match_score, axis=1)
-        matched = self.download_db[self.download_db['score'] >= percentage].sort_values(by='score', ascending=False)
-        
-        exact_matches = matched[matched['score'] == 200]
-        if not exact_matches.empty:
-            return exact_matches.head(1).to_dict('records')
-        
-        return matched.head(count).to_dict('records')
+        scored = [(row, score(row)) for row in rows]
+        filtered = sorted(
+            [r for r, s in scored if s >= percentage],
+            key=lambda r: -max(fuzz.partial_ratio(query, r["id"].lower()), fuzz.partial_ratio(query, r["name"].lower()))
+        )
+        return [dict(id=r["id"], name=r["name"], links=json.loads(r["links"])) for r in filtered[:count]]
 
-# Dictionary to store database instances for each server
-server_databases = {}
+    # Watchers
+    def _load_watcher_cache(self) -> List[Dict]:
+        cur = self.db.execute("SELECT id, question, reply FROM watchers ORDER BY id ASC")
+        watchers = []
+        for row in cur:
+            watchers.append({
+                "id": row["id"],
+                "question": row["question"],
+                "reply": row["reply"]
+            })
+        return watchers
+
+    def get_watchers(self) -> List[Dict]:
+        return self._watcher_cache
+
+    def add_watcher(self, question: str, reply: str) -> int:
+        with self.db:
+            cur = self.db.execute(
+                "INSERT INTO watchers (question, reply) VALUES (?, ?)",
+                (question, reply)
+            )
+            new_id = cur.lastrowid
+        self._watcher_cache = self._load_watcher_cache()
+        return new_id
+
+    def update_watcher(self, watcher_id: int, question: str, reply: str) -> bool:
+        with self.db:
+            cur = self.db.execute(
+                "UPDATE watchers SET question = ?, reply = ? WHERE id = ?",
+                (question, reply, watcher_id)
+            )
+            updated = cur.rowcount > 0
+        if updated:
+            self._watcher_cache = self._load_watcher_cache()
+        return updated
+
+    def remove_watcher(self, watcher_id: int) -> bool:
+        with self.db:
+            cur = self.db.execute("DELETE FROM watchers WHERE id = ?", (watcher_id,))
+            removed = cur.rowcount > 0
+        if removed:
+            self._watcher_cache = self._load_watcher_cache()
+        return removed
+    
+    def list_watchers(self, page=1, page_size=10):
+        """
+        Returns a paginated list of watchers for this server.
+        """
+        offset = (page - 1) * page_size
+        query = """
+            SELECT id, question, reply
+            FROM watchers
+            WHERE server_id = ?
+            ORDER BY id ASC
+            LIMIT ? OFFSET ?
+        """
+        with self.db:
+            cur = self.db.execute(query, (self.server_id, page_size, offset))
+            rows = cur.fetchall()
+
+        # Convert to list of dicts for consistent usage
+        return [
+            {"id": row[0], "question": row[1], "reply": row[2]}
+            for row in rows
+        ]
+
+# Singleton instances per server
+_servers = {}
 
 def get_server_database(server_id):
-    if not server_id:
-        raise commands.NoPrivateMessage("This command cannot be used in private messages.")
-    if server_id not in server_databases:
-        server_databases[server_id] = ServerDatabase(server_id)
-    return server_databases[server_id]
+    if server_id not in _servers:
+        _servers[server_id] = ServerDatabase(server_id)
+    return _servers[server_id]

@@ -23,6 +23,7 @@ bot.load_extension('cogs.videoCommand')
 bot.load_extension('cogs.logCommand')
 bot.load_extension('cogs.configCommand')
 bot.load_extension('cogs.helpCommand')
+bot.load_extension('cogs.watcherCommand')
 # bot.load_extension('cogs.creditCommand') -> TODO make nicer
  
 bot.run(os.getenv('BOT_TOKEN'))

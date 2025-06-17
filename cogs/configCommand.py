@@ -6,6 +6,7 @@ from core.config import load_config, save_config
 from core.guards import is_admin, is_moderator
 from core.logger import command_logger
 from core.utils import scan_download_channel, scan_video_channel
+from core.database import get_server_database
 
 class ConfigCommand(commands.Cog):
     def __init__(self, bot):
@@ -36,7 +37,7 @@ class ConfigCommand(commands.Cog):
         
         save_config(server_id, config)
 
-        self.bot.dispatch('config_update')
+        self.bot.dispatch('config_update', server_id)
         
         # Update the cooldown for the DownloadCommand
         download_cog = self.bot.get_cog('DownloadCommand')
@@ -336,7 +337,7 @@ class ConfigCommand(commands.Cog):
         config['search_regex'] = regex
         save_config(server_id, config)
 
-        self.bot.dispatch('config_update')
+        self.bot.dispatch('config_update', server_id)
         await ctx.respond(f"Search regex updated to: {regex}", ephemeral=True)
 
     @config.command(name="reset_regex", description="Reset the search regex for download messages to `DN : (.+)`")
@@ -352,8 +353,128 @@ class ConfigCommand(commands.Cog):
         config['search_regex'] = 'DN : (.+)'
         save_config(server_id, config)
 
-        self.bot.dispatch('config_update')
+        self.bot.dispatch('config_update', server_id)
         await ctx.respond(f"Search regex updated to: {'DN : (.+)'}", ephemeral=True)
+
+
+    ########################################
+    # Watcher management
+    ########################################
+    @config.command(name="watcher", description="Manage watchers that reply to specific messages")
+    @is_moderator()
+    @command_logger
+    async def config_watcher(
+        self,
+        ctx,
+        action: Option(str, "Choose an action", choices=["add", "remove", "list", "help"]),
+        question: Option(str, "Question to watch for (or index number for removal)", required=False),
+        reply: Option(str, "Response to send when question is detected", required=False),
+        page: Option(int, "Page number to show (for list only)", required=False, default=1)
+    ):
+        server_id = ctx.guild.id
+        db = get_server_database(server_id)
+
+        if action == "help":
+            help_text = (
+                "**Watcher Help**\n\n"
+                "**Add a watcher:**\n"
+                "`/config watcher add question:<text> reply:<response>`\n"
+                "Use `*wildcard*` in the question to match any message that contains that text.\n\n"
+                "**Remove a watcher:**\n"
+                "`/config watcher remove`\n"
+                "This shows a list of watchers with index numbers.\n"
+                "To remove one: `/config watcher remove question:<number>`\n\n"
+                "**List watchers:**\n"
+                "`/config watcher list`\n"
+                "Displays a list of currently configured watchers."
+            )
+            await ctx.respond(help_text, ephemeral=True)
+            return
+
+        if action == "add":
+            if not question or not reply:
+                await ctx.respond("You must provide a question, an reply.", ephemeral=True)
+                return
+
+            success = db.add_watcher(question.strip(), reply.strip())
+            
+            if success:
+                self.bot.dispatch('update_watcher', server_id)
+                await ctx.respond(f"✅ Watcher added for: **{question}**", ephemeral=True)
+            else:
+                await ctx.respond("❌ Failed to add watcher.", ephemeral=True)
+
+        elif action == "remove":
+            watchers = db.list_watchers()
+
+            if not watchers:
+                await ctx.respond("No watchers configured to remove.", ephemeral=True)
+                return
+
+            if not question:
+                desc = ""
+                for i, w in enumerate(watchers, 1):
+                    preview = w['question'] if len(w['question']) <= 50 else w['question'][:47] + "..."
+                    desc += f"**{i}.** {preview}\n"
+                embed = discord.Embed(title="🗑️ Watchers - Select one to remove", description=desc, color=discord.Color.orange())
+                embed.set_footer(text="To remove a watcher, run /config watcher remove question:<number>")
+                await ctx.respond(embed=embed, ephemeral=True)
+                return
+
+            try:
+                index = int(question)
+                if 1 <= index <= len(watchers):
+                    removed = db.remove_watcher(watchers[index - 1]['id'])
+                    if removed:
+                        self.bot.dispatch('update_watcher', server_id)
+                        await ctx.respond(f"✅ Removed watcher #{index}: **{watchers[index - 1]['question']}**", ephemeral=True)
+                    else:
+                        await ctx.respond("❌ Failed to remove watcher.", ephemeral=True)
+                else:
+                    await ctx.respond("Invalid watcher number.", ephemeral=True)
+            except ValueError:
+                removed = db.remove_watcher_by_question(question.strip())
+                if removed:
+                    await ctx.respond(f"✅ Removed watcher for question: **{question}**", ephemeral=True)
+                else:
+                    await ctx.respond("❌ Watcher not found by question.", ephemeral=True)
+
+        elif action == "list":
+            watchers = db.list_watchers(page)
+            if not watchers:
+                await ctx.respond("No watchers configured.", ephemeral=True)
+                return
+
+            def truncate(text, length):
+                return text if len(text) <= length else text[:length - 3] + "..."
+
+            # Set max display length for each column
+            MAX_ID_LEN = 4
+            MAX_QUESTION_LEN = 40
+            MAX_REPLY_LEN = 40
+
+            # Header row
+            header = (
+                f"{'ID':<{MAX_ID_LEN}} "
+                f"{'Question':<{MAX_QUESTION_LEN}} "
+                f"{'Reply':<{MAX_REPLY_LEN}}"
+            )
+            separator = "-" * len(header)
+
+            # Table rows
+            lines = [header, separator]
+            for idx, w in enumerate(watchers, 1):
+                q = truncate(w['question'], MAX_QUESTION_LEN)
+                a = truncate(w['reply'], MAX_REPLY_LEN)
+                lines.append(
+                    f"{str(idx):<{MAX_ID_LEN}} "
+                    f"{q:<{MAX_QUESTION_LEN}} "
+                    f"{a:<{MAX_REPLY_LEN}}"
+                )
+
+            table = "```\n" + "\n".join(lines) + "\n```"
+            await ctx.respond(table, ephemeral=True)
+
 
 def setup(bot):
     bot.add_cog(ConfigCommand(bot))

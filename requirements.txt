@@ -3,3 +3,4 @@ py-cord==2.6.0
 fuzzywuzzy 
 python-Levenshtein
 pandas
+sqlite-utils>=3.35
