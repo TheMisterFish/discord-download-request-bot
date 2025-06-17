@@ -5,7 +5,7 @@ from typing import List, Dict
 from discord.ext import commands
 from core.config import DATA_DIR
 from core.logger import get_server_logger
-from rapidfuzz import fuzz  # keep for scoring, but no regex caching here
+from rapidfuzz import fuzz
 
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
@@ -56,7 +56,6 @@ class ServerDatabase:
             self.db.execute("CREATE INDEX IF NOT EXISTS idx_videos_tag ON videos(tag)")
             self.db.execute("CREATE INDEX IF NOT EXISTS idx_watchers_question ON watchers(question)")
 
-    # Downloads
     def update_download_database(self, id: str, name, channel, link):
         id = id.upper()
         cur = self.db.execute("SELECT links FROM downloads WHERE id = ?", (id,))
@@ -261,7 +260,6 @@ class ServerDatabase:
         )
         return [dict(id=r["id"], name=r["name"], links=json.loads(r["links"])) for r in filtered[:count]]
 
-    # Watchers
     def _load_watcher_cache(self) -> List[Dict]:
         cur = self.db.execute("SELECT id, question, reply FROM watchers ORDER BY id ASC")
         watchers = []
@@ -321,7 +319,6 @@ class ServerDatabase:
             cur = self.db.execute(query, (self.server_id, page_size, offset))
             rows = cur.fetchall()
 
-        # Convert to list of dicts for consistent usage
         return [
             {"id": row[0], "question": row[1], "reply": row[2]}
             for row in rows
@@ -331,6 +328,8 @@ class ServerDatabase:
 _servers = {}
 
 def get_server_database(server_id):
+    if not server_id:
+        raise commands.NoPrivateMessage("This command cannot be used in private messages.")
     if server_id not in _servers:
         _servers[server_id] = ServerDatabase(server_id)
     return _servers[server_id]

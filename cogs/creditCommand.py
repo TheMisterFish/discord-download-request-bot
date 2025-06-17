@@ -31,7 +31,6 @@ class CreditCommand(commands.Cog):
 
         embed.set_footer(text="Thank you for using our bot!")
 
-        # Send the embed as an ephemeral message (only visible to the command user)
         await ctx.respond(embed=embed, ephemeral=True)
 
 def setup(bot):

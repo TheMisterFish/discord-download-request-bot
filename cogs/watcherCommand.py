@@ -7,7 +7,6 @@ from core.database import get_server_database
 class WatcherCommand(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Cache: guild_id -> list of (compiled_regex, reply)
         self._watcher_cache: dict[int, List[Tuple[Pattern, str]]] = {}
 
     def _compile_pattern(self, question: str) -> Pattern:
@@ -23,7 +22,7 @@ class WatcherCommand(commands.Cog):
 
     def _load_watchers_for_guild(self, guild_id: int):
         db = get_server_database(guild_id)
-        watchers = db.get_watchers()  # Correct method name from your database.py
+        watchers = db.get_watchers()
         compiled = []
         for watcher in watchers:
             try:
@@ -40,7 +39,6 @@ class WatcherCommand(commands.Cog):
 
         guild_id = message.guild.id
 
-        # Ensure cache exists
         if guild_id not in self._watcher_cache:
             self._load_watchers_for_guild(guild_id)
 
@@ -55,7 +53,7 @@ class WatcherCommand(commands.Cog):
                     print(f"[Watcher] Missing permissions to send message in {message.channel}")
                 except Exception as e:
                     print(f"[Watcher] Error sending message: {e}")
-                break  # Only trigger one watcher per message
+                break
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild):

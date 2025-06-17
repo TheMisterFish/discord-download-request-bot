@@ -90,7 +90,6 @@ class DownloadCommand(commands.Cog):
             return value, None
 
         if both:
-            # Try to extract ID and name from 'id' input (which is really the combined input in this case)
             extracted_id, extracted_name = extract_id_and_name(id)
 
             if extracted_id:
@@ -99,7 +98,6 @@ class DownloadCommand(commands.Cog):
                     await self.send_single_result_embed(ctx, id_name, extracted_id, id_links)
                     return
             
-            # If no exact ID match, fallback to search by extracted_name or original name param
             search_name = extracted_name if extracted_name else name
             matching_downloads = db.get_matching_downloads(100, search_name, 70)
             if matching_downloads:
@@ -109,7 +107,6 @@ class DownloadCommand(commands.Cog):
             await ctx.respond("No downloads found matching the provided ID or name.", ephemeral=True)
             return
 
-        # Normal separate id or name processing
         if id:
             name, links = db.get_download_entry(id.upper())
             if not name:

@@ -55,7 +55,6 @@ class ServerLogger:
 
         self.logger.info(log_message)
 
-# Dictionary to store logger instances for each server
 server_loggers = {}
 
 def get_server_logger(server_id):

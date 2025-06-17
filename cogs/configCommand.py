@@ -360,6 +360,7 @@ class ConfigCommand(commands.Cog):
     ########################################
     # Watcher management
     ########################################
+    
     @config.command(name="watcher", description="Manage watchers that reply to specific messages")
     @is_moderator()
     @command_logger
@@ -448,12 +449,10 @@ class ConfigCommand(commands.Cog):
             def truncate(text, length):
                 return text if len(text) <= length else text[:length - 3] + "..."
 
-            # Set max display length for each column
             MAX_ID_LEN = 4
             MAX_QUESTION_LEN = 40
             MAX_REPLY_LEN = 40
 
-            # Header row
             header = (
                 f"{'ID':<{MAX_ID_LEN}} "
                 f"{'Question':<{MAX_QUESTION_LEN}} "
@@ -461,7 +460,6 @@ class ConfigCommand(commands.Cog):
             )
             separator = "-" * len(header)
 
-            # Table rows
             lines = [header, separator]
             for idx, w in enumerate(watchers, 1):
                 q = truncate(w['question'], MAX_QUESTION_LEN)
