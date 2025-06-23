@@ -311,12 +311,11 @@ class ServerDatabase:
         query = """
             SELECT id, question, reply
             FROM watchers
-            WHERE server_id = ?
             ORDER BY id ASC
             LIMIT ? OFFSET ?
         """
         with self.db:
-            cur = self.db.execute(query, (self.server_id, page_size, offset))
+            cur = self.db.execute(query, (page_size, offset))
             rows = cur.fetchall()
 
         return [
