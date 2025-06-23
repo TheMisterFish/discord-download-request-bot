@@ -18,7 +18,6 @@ async def process_download_message(message):
 
     content_to_check = message.content
 
-    # Check for embeds
     if message.embeds:
         for embed in message.embeds:
             if embed.description:

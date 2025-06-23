@@ -12,17 +12,18 @@ intents.presences = True
 bot = discord.Bot(intents=intents)
 
 # Load cogs
-# Event listener
+#   Event listener
 bot.load_extension('cogs.events')
 
-# User command
+#   User command
 bot.load_extension('cogs.downloadCommand')
 bot.load_extension('cogs.videoCommand')
 
-# Moderator commands
+#   Moderator commands
 bot.load_extension('cogs.logCommand')
 bot.load_extension('cogs.configCommand')
 bot.load_extension('cogs.helpCommand')
+bot.load_extension('cogs.watcherCommand')
 # bot.load_extension('cogs.creditCommand') -> TODO make nicer
  
 bot.run(os.getenv('BOT_TOKEN'))
